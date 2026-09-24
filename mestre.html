@@ -44,6 +44,14 @@
       border:1px solid #4a4a4a;
       box-shadow:0 12px 35px rgba(0,0,0,.5);
     }
+
+    .master-photo{
+      width:118px;height:118px;object-fit:cover;border-radius:50%;
+      border:2px solid rgba(198,161,91,.75);
+      box-shadow:0 0 0 5px rgba(181,22,27,.10),0 14px 40px rgba(0,0,0,.55);
+      display:block;margin:0 auto 16px;
+      background:#090909;
+    }
     .eyebrow{
       margin-top:15px;color:var(--red2);font-size:10px;font-weight:800;
       letter-spacing:3px;text-transform:uppercase
@@ -169,6 +177,7 @@
     </header>
 
     <section id="loginPanel" class="panel login">
+      <img class="master-photo" src="mestre.png" alt="Mestre">
       <div class="title">Acesso do Mestre</div>
 
       <label for="email">Email</label>
@@ -220,14 +229,41 @@
               </tbody>
             </table>
           </div>
+        </div>
 
-          <div id="appStatus" class="status">Ligado.</div>
+        <div class="section">
+          <div class="section-heading">
+            <h2>Portais Inativos</h2>
+            <button id="addInactiveBtn" class="primary">+ Novo portal</button>
+          </div>
 
           <div class="note">
-            A TV Líquida é calculada automaticamente como TV Bruta − TV Anulada.
-            A percentagem é calculada automaticamente com base na TV Líquida e no objetivo.
-            As alterações guardadas refletem-se no painel público.
+            Os portais inativos não aparecem no painel público, mas as suas TV anuladas continuam a penalizar o resultado líquido da equipa.
           </div>
+
+          <div class="table-wrap" style="margin-top:12px">
+            <table>
+              <thead>
+                <tr>
+                  <th>Portal</th>
+                  <th>TV Anulada</th>
+                  <th>Guardar</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="inactiveRows">
+                <tr><td colspan="4">A carregar...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="appStatus" class="status">Ligado.</div>
+
+        <div class="note">
+          A TV Líquida dos Cavaleiros é calculada como TV Bruta − TV Anulada.
+          Nos Portais Inativos, as anulações são mantidas mesmo quando não existem vendas brutas no período.
+          As alterações guardadas refletem-se no painel público.
         </div>
       </div>
 
@@ -301,40 +337,47 @@
     await carregarDados();
   }
 
+  async function obterPeriodoAtual(){
+    const { data: periodo, error } = await supabaseClient
+      .from("periods")
+      .select("id,nome")
+      .eq("ativo", true)
+      .order("data_inicio", { ascending:false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!periodo) throw new Error("Não existe período ativo.");
+    return periodo;
+  }
+
   async function carregarDados(){
     rows.innerHTML = '<tr><td colspan="8">A carregar...</td></tr>';
+    inactiveRows.innerHTML = '<tr><td colspan="4">A carregar...</td></tr>';
 
     try {
-      const { data: periodo, error: periodoError } = await supabaseClient
-        .from("periods")
-        .select("id,nome")
-        .eq("ativo", true)
-        .order("data_inicio", { ascending:false })
-        .limit(1)
-        .maybeSingle();
-
-      if (periodoError) throw periodoError;
-      if (!periodo) throw new Error("Não existe período ativo.");
-
-      periodoAtual = periodo;
-      periodLabel.textContent = periodo.nome;
+      periodoAtual = await obterPeriodoAtual();
+      periodLabel.textContent = periodoAtual.nome;
 
       const { data, error } = await supabaseClient
         .from("performance_dashboard")
-        .select("id,seller_id,vendedor,period_id,objetivo,tv_bruta,tv_anulada,tv_liquida,tv_instalada,percentagem")
-        .eq("period_id", periodo.id)
+        .select("id,seller_id,vendedor,period_id,objetivo,tv_bruta,tv_anulada,tv_liquida,tv_instalada,percentagem,ativo")
+        .eq("period_id", periodoAtual.id)
         .order("vendedor", { ascending:true });
 
       if (error) throw error;
 
-      if (!data || !data.length) {
-        rows.innerHTML = '<tr><td colspan="8">Não existem registos para este período.</td></tr>';
-        return;
-      }
+      const lista = Array.isArray(data) ? data : [];
+      const ativos = lista.filter(item => item.ativo !== false);
+      const inativos = lista.filter(item => item.ativo === false);
 
       rows.innerHTML = "";
 
-      data.forEach(item => {
+      if (!ativos.length) {
+        rows.innerHTML = '<tr><td colspan="8">Não existem Cavaleiros ativos neste período.</td></tr>';
+      }
+
+      ativos.forEach(item => {
         const objetivo = numberValue(item.objetivo);
         const bruta = numberValue(item.tv_bruta);
         const anulada = numberValue(item.tv_anulada);
@@ -420,10 +463,162 @@
         rows.appendChild(tr);
       });
 
+      inactiveRows.innerHTML = "";
+
+      if (!inativos.length) {
+        inactiveRows.innerHTML = '<tr><td colspan="4">Não existem Portais Inativos.</td></tr>';
+      }
+
+      inativos.forEach(item => {
+        const anulada = numberValue(item.tv_anulada);
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td class="name">${escapeHtml(item.vendedor)}</td>
+          <td><input class="cell-input inactive-anulada" type="number" min="0" value="${anulada}"></td>
+          <td><button class="primary inactive-save">Guardar</button></td>
+          <td><button class="secondary reactivate">Reativar</button></td>
+        `;
+
+        tr.querySelector(".inactive-save").addEventListener("click", async () => {
+          const button = tr.querySelector(".inactive-save");
+          button.disabled = true;
+          button.textContent = "A guardar...";
+
+          try {
+            const anuladaNova = numberValue(tr.querySelector(".inactive-anulada").value);
+
+            if (anuladaNova < 0) {
+              throw new Error("TV Anulada não pode ser negativa.");
+            }
+
+            const { error: updateError } = await supabaseClient
+              .from("performance")
+              .update({
+                tv_anulada: anuladaNova
+              })
+              .eq("id", item.id)
+              .eq("period_id", periodoAtual.id);
+
+            if (updateError) throw updateError;
+
+            button.textContent = "Guardado ✓";
+            showAppStatus(`Anulações de ${item.vendedor} guardadas com sucesso.`);
+            setTimeout(() => button.textContent = "Guardar", 1200);
+
+          } catch (error) {
+            console.error(error);
+            showAppStatus(error.message || "Erro ao guardar.", true);
+            button.textContent = "Erro";
+            setTimeout(() => button.textContent = "Guardar", 1500);
+
+          } finally {
+            button.disabled = false;
+          }
+        });
+
+        tr.querySelector(".reactivate").addEventListener("click", async () => {
+          const button = tr.querySelector(".reactivate");
+          const confirmar = window.confirm(
+            `Reativar "${item.vendedor}"?\n\nO portal voltará a aparecer no painel público e na Performance dos Cavaleiros.`
+          );
+
+          if (!confirmar) return;
+
+          button.disabled = true;
+          button.textContent = "A reativar...";
+
+          try {
+            const { error: updateError } = await supabaseClient
+              .from("sellers")
+              .update({ ativo: true })
+              .eq("id", item.seller_id);
+
+            if (updateError) throw updateError;
+
+            showAppStatus(`${item.vendedor} foi reativado.`);
+            await carregarDados();
+
+          } catch (error) {
+            console.error(error);
+            showAppStatus(error.message || "Erro ao reativar.", true);
+            button.disabled = false;
+            button.textContent = "Reativar";
+          }
+        });
+
+        inactiveRows.appendChild(tr);
+      });
+
     } catch(error) {
       console.error(error);
       rows.innerHTML = `<tr><td colspan="8" style="color:#ff6268">${escapeHtml(error.message || "Erro ao carregar dados.")}</td></tr>`;
+      inactiveRows.innerHTML = `<tr><td colspan="4" style="color:#ff6268">${escapeHtml(error.message || "Erro ao carregar dados.")}</td></tr>`;
       showAppStatus(error.message || "Erro ao carregar dados.", true);
+    }
+  }
+
+  async function criarPortalInativo(){
+    const nome = window.prompt("Nome do novo Portal Inativo:");
+
+    if (nome === null) return;
+
+    const nomeLimpo = nome.trim();
+
+    if (!nomeLimpo) {
+      showAppStatus("O nome do portal é obrigatório.", true);
+      return;
+    }
+
+    try {
+      const { data: existing, error: existingError } = await supabaseClient
+        .from("sellers")
+        .select("id,nome,ativo")
+        .ilike("nome", nomeLimpo);
+
+      if (existingError) throw existingError;
+
+      if (existing && existing.length) {
+        throw new Error("Já existe um comercial/portal com esse nome.");
+      }
+
+      const { data: seller, error: sellerError } = await supabaseClient
+        .from("sellers")
+        .insert({
+          nome: nomeLimpo,
+          ativo: false
+        })
+        .select("id,nome")
+        .single();
+
+      if (sellerError) throw sellerError;
+
+      const { error: performanceError } = await supabaseClient
+        .from("performance")
+        .insert({
+          seller_id: seller.id,
+          period_id: periodoAtual.id,
+          objetivo: 0,
+          tv_bruta: 0,
+          tv_anulada: 0,
+          tv_instalada: 0
+        });
+
+      if (performanceError) {
+        await supabaseClient
+          .from("sellers")
+          .delete()
+          .eq("id", seller.id);
+        throw performanceError;
+      }
+
+      showAppStatus(`Portal Inativo "${nomeLimpo}" criado com sucesso.`);
+      await carregarDados();
+
+    } catch(error) {
+      console.error(error);
+      showAppStatus(error.message || "Erro ao criar Portal Inativo.", true);
     }
   }
 
@@ -481,6 +676,7 @@
   });
 
   document.getElementById("reloadBtn").addEventListener("click", carregarDados);
+  document.getElementById("addInactiveBtn").addEventListener("click", criarPortalInativo);
 
   document.getElementById("password").addEventListener("keydown", event => {
     if (event.key === "Enter") document.getElementById("loginBtn").click();

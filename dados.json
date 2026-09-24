@@ -1,0 +1,65 @@
+{
+  "mes": "Setembro 2026",
+  "equipa": {
+    "nome": "Templários",
+    "objetivo_total": 0
+  },
+  "vendedores": [
+    {
+      "nome": "Cavaleiro 1",
+      "objetivo": 0,
+      "tv_bruta": 0,
+      "tv_anulada": 0,
+      "tv_instalada": 0
+    },
+    {
+      "nome": "Cavaleiro 2",
+      "objetivo": 0,
+      "tv_bruta": 0,
+      "tv_anulada": 0,
+      "tv_instalada": 0
+    },
+    {
+      "nome": "Cavaleiro 3",
+      "objetivo": 0,
+      "tv_bruta": 0,
+      "tv_anulada": 0,
+      "tv_instalada": 0
+    },
+    {
+      "nome": "Cavaleiro 4",
+      "objetivo": 0,
+      "tv_bruta": 0,
+      "tv_anulada": 0,
+      "tv_instalada": 0
+    },
+    {
+      "nome": "Cavaleiro 5",
+      "objetivo": 0,
+      "tv_bruta": 0,
+      "tv_anulada": 0,
+      "tv_instalada": 0
+    },
+    {
+      "nome": "Cavaleiro 6",
+      "objetivo": 0,
+      "tv_bruta": 0,
+      "tv_anulada": 0,
+      "tv_instalada": 0
+    },
+    {
+      "nome": "Cavaleiro 7",
+      "objetivo": 0,
+      "tv_bruta": 0,
+      "tv_anulada": 0,
+      "tv_instalada": 0
+    },
+    {
+      "nome": "Cavaleiro 8",
+      "objetivo": 0,
+      "tv_bruta": 0,
+      "tv_anulada": 0,
+      "tv_instalada": 0
+    }
+  ]
+}

@@ -718,6 +718,10 @@
     }
 
   </style>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
 
 
@@ -1025,400 +1029,97 @@
        CARREGAR DADOS
     ====================================== */
 
+
+    /* SUPABASE — substituir apenas estes dois valores */
+    const SUPABASE_URL = "COLOCA_AQUI_O_TEU_PROJECT_URL";
+    const SUPABASE_KEY = "COLOCA_AQUI_A_TUA_PUBLISHABLE_KEY";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
     async function carregarDados() {
-
-
       try {
+        const { data: periodo, error: erroPeriodo } = await supabaseClient
+          .from("periods")
+          .select("id,nome")
+          .eq("ativo", true)
+          .order("data_inicio", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
+        if (erroPeriodo) throw erroPeriodo;
+        if (!periodo) throw new Error("Não existe nenhum período ativo.");
 
-        const resposta =
-          await fetch(
-            "dados.json?v=" + Date.now()
-          );
+        document.getElementById("periodo").textContent = periodo.nome;
 
+        const { data: vendedores, error: erroPerformance } = await supabaseClient
+          .from("performance_dashboard")
+          .select("id,seller_id,vendedor,period_id,periodo,objetivo,tv_bruta,tv_anulada,tv_liquida,tv_instalada,percentagem")
+          .eq("period_id", periodo.id)
+          .order("percentagem", { ascending: false });
 
-        if (!resposta.ok) {
+        if (erroPerformance) throw erroPerformance;
 
-          throw new Error(
-            "Erro ao carregar dados.json"
-          );
+        const lista = Array.isArray(vendedores) ? vendedores : [];
+        let bruta = 0, anulada = 0, instalada = 0;
 
-        }
+        lista.forEach(v => {
+          bruta += Number(v.tv_bruta) || 0;
+          anulada += Number(v.tv_anulada) || 0;
+          instalada += Number(v.tv_instalada) || 0;
+        });
 
+        document.getElementById("teamBruta").textContent = bruta;
+        document.getElementById("teamAnulada").textContent = anulada;
+        document.getElementById("teamLiquida").textContent = bruta - anulada;
+        document.getElementById("teamInstalada").textContent = instalada;
 
-        const dados =
-          await resposta.json();
-
-
-        /* PERÍODO */
-
-        document.getElementById(
-          "periodo"
-        ).textContent =
-          dados.mes ||
-          "Período atual";
-
-
-        /* VENDEDORES */
-
-        const vendedores =
-          Array.isArray(
-            dados.vendedores
-          )
-            ? dados.vendedores
-            : [];
-
-
-        /* TOTAIS */
-
-        let bruta = 0;
-        let anulada = 0;
-        let instalada = 0;
-
-
-        vendedores.forEach(
-          vendedor => {
-
-            bruta +=
-              Number(
-                vendedor.tv_bruta
-              ) || 0;
-
-
-            anulada +=
-              Number(
-                vendedor.tv_anulada
-              ) || 0;
-
-
-            instalada +=
-              Number(
-                vendedor.tv_instalada
-              ) || 0;
-
-          }
-        );
-
-
-        const liquida =
-          bruta - anulada;
-
-
-        /* MOSTRAR TOTAIS */
-
-        document.getElementById(
-          "teamBruta"
-        ).textContent =
-          bruta;
-
-
-        document.getElementById(
-          "teamAnulada"
-        ).textContent =
-          anulada;
-
-
-        document.getElementById(
-          "teamLiquida"
-        ).textContent =
-          liquida;
-
-
-        document.getElementById(
-          "teamInstalada"
-        ).textContent =
-          instalada;
-
-
-        /* ÁREA DOS VENDEDORES */
-
-        const area =
-          document.getElementById(
-            "sellers"
-          );
-
-
+        const area = document.getElementById("sellers");
         area.innerHTML = "";
 
-
-        if (!vendedores.length) {
-
-          area.innerHTML = `
-            <div class="error">
-              Não existem vendedores no dados.json.
-            </div>
-          `;
-
+        if (!lista.length) {
+          area.innerHTML = '<div class="error">Não existem dados de performance para este período.</div>';
           return;
-
         }
 
-
-        /* =================================
-           CRIAR CADA CARTÃO
-        ================================== */
-
-        vendedores.forEach(
-          vendedor => {
-
-
-            const objetivo =
-              Number(
-                vendedor.objetivo
-              ) || 0;
-
-
-            const tvBruta =
-              Number(
-                vendedor.tv_bruta
-              ) || 0;
-
-
-            const tvAnulada =
-              Number(
-                vendedor.tv_anulada
-              ) || 0;
-
-
-            const tvInstalada =
-              Number(
-                vendedor.tv_instalada
-              ) || 0;
-
-
-            /* TV LÍQUIDA */
-
-            const tvLiquida =
-              tvBruta - tvAnulada;
-
-
-            /* PERCENTAGEM */
-
-            const percentagem =
-              objetivo > 0
-                ? (
-                    tvLiquida /
-                    objetivo
-                  ) * 100
-                : 0;
-
-
-            /* PATENTE */
-
-            const patente =
-              obterPatente(
-                percentagem
-              );
-
-
-            /* FOTOGRAFIA */
-
-            const fotosPessoa =
-              fotos[
-                vendedor.nome
-              ];
-
-
-            let fotografia =
-              "TEMPLARIOS.png";
-
-
-            if (
-              fotosPessoa &&
-              fotosPessoa[
-                patente.chave
-              ]
-            ) {
-
-              fotografia =
-                fotosPessoa[
-                  patente.chave
-                ];
-
-            }
-
-
-            /* BARRA */
-
-            const barra =
-              Math.min(
-                Math.max(
-                  percentagem,
-                  0
-                ),
-                100
-              );
-
-
-            /* =================================
-               CARTÃO
-            ================================== */
-
-            const card =
-              document.createElement(
-                "article"
-              );
-
-
-            card.className =
-              "seller-card";
-
-
-            card.innerHTML = `
-
-
-              <div class="photo-frame">
-
-                <img
-                  class="seller-photo"
-                  src="${fotografia}"
-                  alt="Fotografia de ${vendedor.nome}"
-                >
-
-                <div class="rank-badge">
-                  ${patente.nome}
-                </div>
-
-              </div>
-
-
-              <div class="seller-name">
-                ${vendedor.nome}
-              </div>
-
-
-              <div class="seller-objective">
-                Objetivo individual:
-                ${objetivo}
-              </div>
-
-
-              <div class="progress-info">
-
-                <span>
-                  Atingimento
-                </span>
-
-                <span class="percentage">
-                  ${percentagem.toFixed(1)}%
-                </span>
-
-              </div>
-
-
-              <div class="progress">
-
-                <div
-                  class="progress-bar"
-                  style="width:${barra}%"
-                ></div>
-
-              </div>
-
-
-              <div class="seller-stats">
-
-
-                <div class="stat">
-
-                  <div class="stat-label">
-                    TV Bruta
-                  </div>
-
-                  <div class="stat-value">
-                    ${tvBruta}
-                  </div>
-
-                </div>
-
-
-                <div class="stat">
-
-                  <div class="stat-label">
-                    TV Anulada
-                  </div>
-
-                  <div class="stat-value">
-                    ${tvAnulada}
-                  </div>
-
-                </div>
-
-
-                <div class="stat liquid-stat">
-
-                  <div class="stat-label">
-                    TV Líquida
-                  </div>
-
-                  <div class="stat-value">
-                    ${tvLiquida}
-                  </div>
-
-                </div>
-
-
-                <div class="stat">
-
-                  <div class="stat-label">
-                    TV Instalada
-                  </div>
-
-                  <div class="stat-value">
-                    ${tvInstalada}
-                  </div>
-
-                </div>
-
-
-              </div>
-
-
-            `;
-
-
-            area.appendChild(
-              card
-            );
-
-
-          }
-        );
-
+        lista.forEach(vendedor => {
+          const objetivo = Number(vendedor.objetivo) || 0;
+          const tvBruta = Number(vendedor.tv_bruta) || 0;
+          const tvAnulada = Number(vendedor.tv_anulada) || 0;
+          const tvLiquida = Number(vendedor.tv_liquida) || 0;
+          const tvInstalada = Number(vendedor.tv_instalada) || 0;
+          const percentagem = Number(vendedor.percentagem) || 0;
+          const patente = obterPatente(percentagem);
+          const fotosPessoa = fotos[vendedor.vendedor];
+          let fotografia = "TEMPLARIOS.png";
+
+          if (fotosPessoa && fotosPessoa[patente.chave]) fotografia = fotosPessoa[patente.chave];
+
+          const barra = Math.min(Math.max(percentagem, 0), 100);
+          const card = document.createElement("article");
+          card.className = "seller-card";
+          card.innerHTML = `
+            <div class="photo-frame">
+              <img class="seller-photo" src="${fotografia}" alt="Fotografia de ${vendedor.vendedor}" onerror="this.onerror=null;this.src='TEMPLARIOS.png';">
+              <div class="rank-badge">${patente.nome}</div>
+            </div>
+            <div class="seller-name">${vendedor.vendedor}</div>
+            <div class="seller-objective">Objetivo individual: ${objetivo}</div>
+            <div class="progress-info"><span>Atingimento</span><span class="percentage">${percentagem.toFixed(1)}%</span></div>
+            <div class="progress"><div class="progress-bar" style="width:${barra}%"></div></div>
+            <div class="seller-stats">
+              <div class="stat"><div class="stat-label">TV Bruta</div><div class="stat-value">${tvBruta}</div></div>
+              <div class="stat"><div class="stat-label">TV Anulada</div><div class="stat-value">${tvAnulada}</div></div>
+              <div class="stat liquid-stat"><div class="stat-label">TV Líquida</div><div class="stat-value">${tvLiquida}</div></div>
+              <div class="stat"><div class="stat-label">TV Instalada</div><div class="stat-value">${tvInstalada}</div></div>
+            </div>`;
+          area.appendChild(card);
+        });
 
       } catch (erro) {
-
-
-        console.error(
-          erro
-        );
-
-
-        document.getElementById(
-          "sellers"
-        ).innerHTML = `
-
-          <div class="error">
-
-            <strong>
-              Erro ao carregar os dados.
-            </strong>
-
-            <br><br>
-
-            Confirma que
-            <strong>dados.json</strong>
-            e as fotografias estão no
-            mesmo repositório.
-
-          </div>
-
-        `;
-
+        console.error("Erro Supabase:", erro);
+        document.getElementById("sellers").innerHTML = `
+          <div class="error"><strong>Erro ao carregar os dados.</strong><br><br>Verifica o Project URL, a Publishable key e as políticas do Supabase.</div>`;
       }
-
     }
-
 
     /* =====================================
        INICIAR

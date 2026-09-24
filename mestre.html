@@ -246,13 +246,15 @@
               <thead>
                 <tr>
                   <th>Portal</th>
+                  <th>TV Bruta</th>
                   <th>TV Anulada</th>
+                  <th>TV Líquida</th>
                   <th>Guardar</th>
                   <th>Estado</th>
                 </tr>
               </thead>
               <tbody id="inactiveRows">
-                <tr><td colspan="4">A carregar...</td></tr>
+                <tr><td colspan="6">A carregar...</td></tr>
               </tbody>
             </table>
           </div>
@@ -466,20 +468,37 @@
       inactiveRows.innerHTML = "";
 
       if (!inativos.length) {
-        inactiveRows.innerHTML = '<tr><td colspan="4">Não existem Portais Inativos.</td></tr>';
+        inactiveRows.innerHTML = '<tr><td colspan="6">Não existem Portais Inativos.</td></tr>';
       }
 
       inativos.forEach(item => {
+        const bruta = numberValue(item.tv_bruta);
         const anulada = numberValue(item.tv_anulada);
+        const liquida = bruta - anulada;
 
         const tr = document.createElement("tr");
 
         tr.innerHTML = `
           <td class="name">${escapeHtml(item.vendedor)}</td>
+          <td><input class="cell-input inactive-bruta" type="number" min="0" value="${bruta}"></td>
           <td><input class="cell-input inactive-anulada" type="number" min="0" value="${anulada}"></td>
+          <td class="liquid inactive-liquida">${liquida}</td>
           <td><button class="primary inactive-save">Guardar</button></td>
           <td><button class="secondary reactivate">Reativar</button></td>
         `;
+
+        const brutaInput = tr.querySelector(".inactive-bruta");
+        const anuladaInput = tr.querySelector(".inactive-anulada");
+        const liquidaCell = tr.querySelector(".inactive-liquida");
+
+        const atualizarLiquida = () => {
+          const brutaAtual = numberValue(brutaInput.value);
+          const anuladaAtual = numberValue(anuladaInput.value);
+          liquidaCell.textContent = brutaAtual - anuladaAtual;
+        };
+
+        brutaInput.addEventListener("input", atualizarLiquida);
+        anuladaInput.addEventListener("input", atualizarLiquida);
 
         tr.querySelector(".inactive-save").addEventListener("click", async () => {
           const button = tr.querySelector(".inactive-save");
@@ -487,15 +506,17 @@
           button.textContent = "A guardar...";
 
           try {
+            const brutaNova = numberValue(tr.querySelector(".inactive-bruta").value);
             const anuladaNova = numberValue(tr.querySelector(".inactive-anulada").value);
 
-            if (anuladaNova < 0) {
-              throw new Error("TV Anulada não pode ser negativa.");
+            if (brutaNova < 0 || anuladaNova < 0) {
+              throw new Error("TV Bruta e TV Anulada não podem ser negativas.");
             }
 
             const { error: updateError } = await supabaseClient
               .from("performance")
               .update({
+                tv_bruta: brutaNova,
                 tv_anulada: anuladaNova
               })
               .eq("id", item.id)

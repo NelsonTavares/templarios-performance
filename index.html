@@ -8,9 +8,14 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
 
   <style>
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -21,49 +26,66 @@
       --red: #b5161b;
       --red-light: #e2383e;
       --red-dark: #650d10;
-      --black: #070707;
-      --panel: #111111;
-      --panel-light: #181818;
+
+      --black: #050505;
+      --panel: #101010;
+      --panel-2: #171717;
+
       --border: #303030;
-      --silver: #d4d4d4;
-      --muted: #8c8c8c;
+
+      --white: #f5f5f5;
+      --silver: #c9c9c9;
+      --muted: #858585;
+
       --gold: #b99a55;
     }
 
     body {
       min-height: 100vh;
-      color: #f4f4f4;
+
+      color: var(--white);
+
       font-family: Inter, sans-serif;
 
       background:
         radial-gradient(
           circle at 50% -15%,
-          rgba(181, 22, 27, 0.30),
+          rgba(181, 22, 27, .32),
           transparent 38%
         ),
         radial-gradient(
           circle at 0% 100%,
-          rgba(100, 10, 10, 0.15),
+          rgba(100, 10, 10, .16),
           transparent 30%
         ),
         linear-gradient(
           135deg,
-          #050505 0%,
+          #050505,
           #111111 50%,
-          #050505 100%
+          #050505
         );
     }
 
     body::before {
       content: "";
+
       position: fixed;
       inset: 0;
+
       pointer-events: none;
-      opacity: 0.055;
+
+      opacity: .045;
 
       background-image:
-        linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px);
+        linear-gradient(
+          rgba(255,255,255,.15) 1px,
+          transparent 1px
+        ),
+        linear-gradient(
+          90deg,
+          rgba(255,255,255,.15) 1px,
+          transparent 1px
+        );
 
       background-size: 50px 50px;
     }
@@ -71,30 +93,35 @@
     .container {
       width: min(1450px, 94%);
       margin: auto;
+
       padding: 35px 0 60px;
+
       position: relative;
     }
 
-    /* =========================
+    /* ========================================
        HEADER
-    ========================= */
+    ======================================== */
 
     header {
       text-align: center;
+
       margin-bottom: 42px;
     }
 
     .logo-wrapper {
       width: 150px;
       height: 150px;
+
       margin: 0 auto 20px;
 
       display: flex;
       align-items: center;
       justify-content: center;
 
-      border: 1px solid rgba(190, 190, 190, 0.25);
-      border-radius: 18px;
+      border: 1px solid rgba(210,210,210,.25);
+
+      border-radius: 20px;
 
       background:
         linear-gradient(
@@ -104,46 +131,54 @@
         );
 
       box-shadow:
-        0 0 0 1px rgba(181,22,27,.12),
-        0 20px 60px rgba(0,0,0,.5),
-        0 0 50px rgba(181,22,27,.10);
+        0 20px 60px rgba(0,0,0,.55),
+        0 0 45px rgba(181,22,27,.12);
 
       overflow: hidden;
     }
 
     .logo-wrapper img {
-      width: 92%;
-      height: 92%;
+      width: 94%;
+      height: 94%;
+
       object-fit: contain;
-      display: block;
     }
 
     .eyebrow {
       color: var(--red-light);
+
       font-size: 11px;
       font-weight: 800;
+
       letter-spacing: 4px;
+
       text-transform: uppercase;
+
       margin-bottom: 10px;
     }
 
     h1 {
       font-family: Cinzel, serif;
-      font-size: clamp(34px, 5vw, 64px);
-      line-height: 1;
-      letter-spacing: 4px;
-      text-transform: uppercase;
 
-      text-shadow:
-        0 3px 20px rgba(0,0,0,.8);
+      font-size: clamp(35px, 5vw, 64px);
+
+      line-height: 1;
+
+      letter-spacing: 4px;
+
+      text-transform: uppercase;
     }
 
     .subtitle {
       margin-top: 13px;
+
       color: var(--muted);
+
       font-size: 12px;
       font-weight: 600;
+
       letter-spacing: 3px;
+
       text-transform: uppercase;
     }
 
@@ -153,31 +188,40 @@
       gap: 9px;
 
       margin-top: 20px;
+
       padding: 9px 18px;
 
       border: 1px solid #3b3b3b;
+
       border-radius: 999px;
 
       background: rgba(255,255,255,.025);
 
       color: var(--silver);
+
       font-size: 12px;
       font-weight: 700;
+
       letter-spacing: 1px;
     }
 
     .period::before {
       content: "";
+
       width: 7px;
       height: 7px;
+
       border-radius: 50%;
+
       background: var(--red-light);
-      box-shadow: 0 0 10px var(--red);
+
+      box-shadow:
+        0 0 10px var(--red);
     }
 
-    /* =========================
+    /* ========================================
        SECTION
-    ========================= */
+    ======================================== */
 
     .section-title {
       display: flex;
@@ -187,43 +231,53 @@
       margin: 40px 0 18px;
 
       font-family: Cinzel, serif;
+
       font-size: 20px;
       font-weight: 700;
+
       letter-spacing: 1px;
+
       text-transform: uppercase;
     }
 
     .section-title::before {
       content: "";
+
       width: 5px;
       height: 27px;
-      border-radius: 2px;
-      background: linear-gradient(
-        to bottom,
-        var(--red-light),
-        var(--red-dark)
-      );
 
-      box-shadow: 0 0 15px rgba(181,22,27,.4);
+      border-radius: 2px;
+
+      background:
+        linear-gradient(
+          to bottom,
+          var(--red-light),
+          var(--red-dark)
+        );
     }
 
-    /* =========================
+    /* ========================================
        TEAM METRICS
-    ========================= */
+    ======================================== */
 
     .team-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+
+      grid-template-columns:
+        repeat(4, 1fr);
+
       gap: 16px;
     }
 
     .metric {
       position: relative;
+
       overflow: hidden;
 
       padding: 23px;
 
       border: 1px solid var(--border);
+
       border-radius: 14px;
 
       background:
@@ -235,47 +289,28 @@
 
       box-shadow:
         0 15px 45px rgba(0,0,0,.25);
-
-      transition: .2s ease;
-    }
-
-    .metric:hover {
-      transform: translateY(-2px);
-      border-color: #494949;
-    }
-
-    .metric::after {
-      content: "";
-      position: absolute;
-      width: 90px;
-      height: 90px;
-      right: -35px;
-      bottom: -40px;
-
-      border-radius: 50%;
-      background: rgba(255,255,255,.025);
     }
 
     .metric.liquid {
-      border-color: rgba(181,22,27,.65);
+      border-color:
+        rgba(181,22,27,.65);
 
       background:
         linear-gradient(
           145deg,
-          rgba(120, 10, 14, .32),
+          rgba(120,10,14,.32),
           #111111
         );
-
-      box-shadow:
-        0 15px 45px rgba(0,0,0,.25),
-        inset 0 0 35px rgba(181,22,27,.05);
     }
 
     .metric-label {
       color: #909090;
+
       font-size: 10px;
       font-weight: 800;
+
       letter-spacing: 1.8px;
+
       text-transform: uppercase;
     }
 
@@ -283,6 +318,7 @@
       margin-top: 8px;
 
       font-family: Cinzel, serif;
+
       font-size: 34px;
       font-weight: 700;
     }
@@ -291,24 +327,29 @@
       color: var(--red-light);
     }
 
-    /* =========================
+    /* ========================================
        SELLERS
-    ========================= */
+    ======================================== */
 
     .sellers {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+
+      grid-template-columns:
+        repeat(4, 1fr);
+
       gap: 18px;
     }
 
     .seller-card {
       position: relative;
+
       overflow: hidden;
 
-      padding: 22px;
+      padding: 18px;
 
       border: 1px solid #303030;
-      border-radius: 15px;
+
+      border-radius: 16px;
 
       background:
         linear-gradient(
@@ -318,31 +359,28 @@
         );
 
       box-shadow:
-        0 18px 45px rgba(0,0,0,.28);
+        0 18px 45px rgba(0,0,0,.30);
 
       transition:
         transform .2s ease,
-        border-color .2s ease,
-        box-shadow .2s ease;
+        border-color .2s ease;
     }
 
     .seller-card:hover {
       transform: translateY(-4px);
 
-      border-color: rgba(181,22,27,.65);
-
-      box-shadow:
-        0 25px 55px rgba(0,0,0,.4),
-        0 0 30px rgba(181,22,27,.06);
+      border-color:
+        rgba(181,22,27,.7);
     }
 
     .seller-card::before {
       content: "";
+
       position: absolute;
 
+      top: 0;
       left: 0;
       right: 0;
-      top: 0;
 
       height: 3px;
 
@@ -355,9 +393,111 @@
         );
     }
 
+    /* ========================================
+       PHOTO
+    ======================================== */
+
+    .photo-frame {
+      position: relative;
+
+      width: 100%;
+
+      aspect-ratio: 1 / 1;
+
+      margin-bottom: 17px;
+
+      padding: 6px;
+
+      border: 1px solid #4b4b4b;
+
+      border-radius: 14px;
+
+      background:
+        linear-gradient(
+          145deg,
+          #262626,
+          #0a0a0a
+        );
+
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.025),
+        0 10px 25px rgba(0,0,0,.45);
+
+      overflow: hidden;
+    }
+
+    .photo-frame::before {
+      content: "";
+
+      position: absolute;
+
+      inset: 4px;
+
+      border: 1px solid rgba(181,22,27,.45);
+
+      border-radius: 10px;
+
+      pointer-events: none;
+
+      z-index: 2;
+    }
+
+    .seller-photo {
+      width: 100%;
+      height: 100%;
+
+      display: block;
+
+      object-fit: cover;
+
+      border-radius: 9px;
+
+      background: #090909;
+    }
+
+    .rank-badge {
+      position: absolute;
+
+      left: 50%;
+      bottom: 13px;
+
+      transform: translateX(-50%);
+
+      z-index: 3;
+
+      white-space: nowrap;
+
+      padding: 7px 14px;
+
+      border: 1px solid rgba(255,255,255,.25);
+
+      border-radius: 999px;
+
+      background:
+        rgba(5,5,5,.88);
+
+      backdrop-filter: blur(8px);
+
+      color: #f5f5f5;
+
+      font-family: Cinzel, serif;
+
+      font-size: 10px;
+      font-weight: 800;
+
+      letter-spacing: 1.3px;
+
+      text-transform: uppercase;
+    }
+
+    /* ========================================
+       SELLER INFO
+    ======================================== */
+
     .seller-name {
       font-family: Cinzel, serif;
-      font-size: 19px;
+
+      font-size: 18px;
       font-weight: 700;
 
       margin-bottom: 5px;
@@ -365,18 +505,20 @@
 
     .seller-objective {
       color: #777;
+
       font-size: 11px;
       font-weight: 600;
 
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
-    /* =========================
+    /* ========================================
        PROGRESS
-    ========================= */
+    ======================================== */
 
     .progress-info {
       display: flex;
+
       justify-content: space-between;
       align-items: center;
 
@@ -384,13 +526,16 @@
 
       font-size: 11px;
       font-weight: 700;
-      text-transform: uppercase;
+
       letter-spacing: 1px;
+
+      text-transform: uppercase;
     }
 
     .percentage {
       color: var(--red-light);
-      font-size: 13px;
+
+      font-size: 14px;
       font-weight: 800;
     }
 
@@ -401,16 +546,16 @@
       background: #292929;
 
       border-radius: 999px;
+
       overflow: hidden;
 
-      margin-bottom: 19px;
-
-      box-shadow:
-        inset 0 1px 3px rgba(0,0,0,.8);
+      margin-bottom: 18px;
     }
 
     .progress-bar {
       height: 100%;
+
+      border-radius: 999px;
 
       background:
         linear-gradient(
@@ -420,68 +565,75 @@
           #e2383e
         );
 
-      border-radius: 999px;
-
-      box-shadow:
-        0 0 12px rgba(226,56,62,.25);
-
-      transition: width .7s ease;
+      transition:
+        width .7s ease;
     }
 
-    /* =========================
-       SELLER STATS
-    ========================= */
+    /* ========================================
+       STATS
+    ======================================== */
 
     .seller-stats {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 9px;
+
+      grid-template-columns:
+        repeat(2, 1fr);
+
+      gap: 8px;
     }
 
     .stat {
-      padding: 11px;
+      padding: 10px;
 
-      border: 1px solid rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.045);
+
       border-radius: 8px;
 
-      background: rgba(255,255,255,.025);
+      background:
+        rgba(255,255,255,.025);
     }
 
     .stat-label {
       color: #707070;
 
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 800;
+
       letter-spacing: 1px;
+
       text-transform: uppercase;
     }
 
     .stat-value {
       margin-top: 5px;
 
-      font-size: 19px;
+      font-size: 18px;
       font-weight: 800;
     }
 
     .liquid-stat {
-      border-color: rgba(181,22,27,.35);
-      background: rgba(181,22,27,.055);
+      border-color:
+        rgba(181,22,27,.4);
+
+      background:
+        rgba(181,22,27,.055);
     }
 
     .liquid-stat .stat-value {
       color: var(--red-light);
     }
 
-    /* =========================
+    /* ========================================
        FOOTER
-    ========================= */
+    ======================================== */
 
     footer {
       margin-top: 55px;
 
       padding-top: 20px;
 
-      border-top: 1px solid rgba(255,255,255,.06);
+      border-top:
+        1px solid rgba(255,255,255,.06);
 
       text-align: center;
 
@@ -489,13 +641,11 @@
 
       font-size: 10px;
       font-weight: 700;
+
       letter-spacing: 3px;
+
       text-transform: uppercase;
     }
-
-    /* =========================
-       LOADING / ERROR
-    ========================= */
 
     .loading,
     .error {
@@ -504,6 +654,7 @@
       padding: 50px;
 
       border: 1px solid #292929;
+
       border-radius: 14px;
 
       background: #101010;
@@ -519,15 +670,16 @@
       color: #e05252;
     }
 
-    /* =========================
+    /* ========================================
        RESPONSIVE
-    ========================= */
+    ======================================== */
 
     @media (max-width: 1100px) {
 
       .team-grid,
       .sellers {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns:
+          repeat(2, 1fr);
       }
 
     }
@@ -564,37 +716,46 @@
       }
 
     }
+
   </style>
 </head>
+
 
 <body>
 
   <main class="container">
 
-    <!-- =========================
+
+    <!-- =====================================
          CABEÇALHO
-    ========================== -->
+    ====================================== -->
 
     <header>
 
       <div class="logo-wrapper">
+
         <img
           src="TEMPLARIOS.png"
-          alt="Logótipo dos Templários"
+          alt="Templários"
         >
+
       </div>
+
 
       <div class="eyebrow">
         ORDEM • DISCIPLINA • PERFORMANCE
       </div>
 
+
       <h1>
         Templários
       </h1>
 
+
       <div class="subtitle">
         Performance dos Cavaleiros
       </div>
+
 
       <div
         class="period"
@@ -606,15 +767,17 @@
     </header>
 
 
-    <!-- =========================
-         PERFORMANCE DA EQUIPA
-    ========================== -->
+    <!-- =====================================
+         EQUIPA
+    ====================================== -->
 
     <div class="section-title">
       Performance da Ordem
     </div>
 
+
     <section class="team-grid">
+
 
       <div class="metric">
 
@@ -679,16 +842,18 @@
 
       </div>
 
+
     </section>
 
 
-    <!-- =========================
+    <!-- =====================================
          CAVALEIROS
-    ========================== -->
+    ====================================== -->
 
     <div class="section-title">
       Performance dos Cavaleiros
     </div>
+
 
     <section
       class="sellers"
@@ -696,7 +861,7 @@
     >
 
       <div class="loading">
-        A carregar os dados da Ordem...
+        A carregar a Ordem...
       </div>
 
     </section>
@@ -706,283 +871,527 @@
       Templários • A Ordem em Marcha
     </footer>
 
+
   </main>
 
 
-  <!-- =========================
-       JAVASCRIPT
-  ========================== -->
-
   <script>
+
+
+    /* =====================================
+       CONFIGURAÇÃO DAS FOTOGRAFIAS
+    ====================================== */
+
+    const fotos = {
+
+      "Sir. David": {
+
+        recruta:
+          "RECRUTA_SIR_DAVID.png",
+
+        escudeiro:
+          "ESCUDEIRO_SIR_DAVID.png",
+
+        cavaleiro:
+          "CAVALEIRO_SIR_DAVID.png",
+
+        comendador:
+          "COMENDADOR_SIR_DAVID.png",
+
+        grao_mestre:
+          "GRÃO_MESTRE_SIR_DAVID.png"
+
+      },
+
+
+      "Fearless Kate": {
+
+        recruta:
+          "RECRUTA_FEARLESS_KATE.png",
+
+        escudeiro:
+          "ESCUDEIRO_FEARLESS_KATE.png",
+
+        cavaleiro:
+          "CAVALEIRO_FEARLESS_KATE.png",
+
+        comendador:
+          "COMENDADOR_FEARLESS_KATE.png",
+
+        grao_mestre:
+          "GRÃO_MESTRE_FEARLESS_KATE.png"
+
+      },
+
+
+      "Lord Lili": {
+
+        recruta:
+          "RECRUTA_LILI.png",
+
+        escudeiro:
+          "ESCUDEIRO_LILI.png",
+
+        cavaleiro:
+          "CAVALEIRO_LILI.png",
+
+        comendador:
+          "COMENDADOR_LILI.png",
+
+        grao_mestre:
+          "GRÃO_MESTRE_LILI.png"
+
+      },
+
+
+      "Knight Salvador": {
+
+        recruta:
+          "RECRUTA_KNIGHT_SALVADOR.png",
+
+        escudeiro:
+          "ESCUDEIRO_KNIGHT_SALVADOR.png",
+
+        cavaleiro:
+          "CAVALEIRO_KNIGHT_SALVADOR.png",
+
+        comendador:
+          "COMENDADOR_KNIGHT_SALVADOR.png",
+
+        grao_mestre:
+          "GRÃO_MESTRE_KNIGHT_SALVADOR.png"
+
+      }
+
+    };
+
+
+    /* =====================================
+       PATENTES
+    ====================================== */
+
+    function obterPatente(percentagem) {
+
+
+      if (percentagem >= 120) {
+
+        return {
+          nome: "Grão-Mestre",
+          chave: "grao_mestre"
+        };
+
+      }
+
+
+      if (percentagem >= 100) {
+
+        return {
+          nome: "Comendador",
+          chave: "comendador"
+        };
+
+      }
+
+
+      if (percentagem >= 75) {
+
+        return {
+          nome: "Cavaleiro",
+          chave: "cavaleiro"
+        };
+
+      }
+
+
+      if (percentagem >= 50) {
+
+        return {
+          nome: "Escudeiro",
+          chave: "escudeiro"
+        };
+
+      }
+
+
+      return {
+        nome: "Recruta",
+        chave: "recruta"
+      };
+
+    }
+
+
+    /* =====================================
+       CARREGAR DADOS
+    ====================================== */
 
     async function carregarDados() {
 
+
       try {
 
-        const resposta = await fetch(
-          "dados.json?versao=" + Date.now()
-        );
+
+        const resposta =
+          await fetch(
+            "dados.json?v=" + Date.now()
+          );
+
 
         if (!resposta.ok) {
 
           throw new Error(
-            "Não foi possível carregar o dados.json"
+            "Erro ao carregar dados.json"
           );
 
         }
 
-        const dados = await resposta.json();
+
+        const dados =
+          await resposta.json();
 
 
-        /* =========================
-           PERÍODO
-        ========================== */
+        /* PERÍODO */
 
-        document.getElementById("periodo").textContent =
-          dados.mes || "Período atual";
+        document.getElementById(
+          "periodo"
+        ).textContent =
+          dados.mes ||
+          "Período atual";
 
 
-        /* =========================
-           VENDEDORES
-        ========================== */
+        /* VENDEDORES */
 
         const vendedores =
-          Array.isArray(dados.vendedores)
+          Array.isArray(
+            dados.vendedores
+          )
             ? dados.vendedores
             : [];
 
 
-        /* =========================
-           TOTAIS
-        ========================== */
+        /* TOTAIS */
 
         let bruta = 0;
         let anulada = 0;
         let instalada = 0;
 
 
-        vendedores.forEach(vendedor => {
+        vendedores.forEach(
+          vendedor => {
 
-          bruta +=
-            Number(vendedor.tv_bruta) || 0;
+            bruta +=
+              Number(
+                vendedor.tv_bruta
+              ) || 0;
 
-          anulada +=
-            Number(vendedor.tv_anulada) || 0;
 
-          instalada +=
-            Number(vendedor.tv_instalada) || 0;
+            anulada +=
+              Number(
+                vendedor.tv_anulada
+              ) || 0;
 
-        });
+
+            instalada +=
+              Number(
+                vendedor.tv_instalada
+              ) || 0;
+
+          }
+        );
 
 
         const liquida =
           bruta - anulada;
 
 
-        /* =========================
-           MOSTRAR TOTAIS
-        ========================== */
+        /* MOSTRAR TOTAIS */
 
         document.getElementById(
           "teamBruta"
-        ).textContent = bruta;
+        ).textContent =
+          bruta;
 
 
         document.getElementById(
           "teamAnulada"
-        ).textContent = anulada;
+        ).textContent =
+          anulada;
 
 
         document.getElementById(
           "teamLiquida"
-        ).textContent = liquida;
+        ).textContent =
+          liquida;
 
 
         document.getElementById(
           "teamInstalada"
-        ).textContent = instalada;
+        ).textContent =
+          instalada;
 
 
-        /* =========================
-           CARTÕES
-        ========================== */
+        /* ÁREA DOS VENDEDORES */
 
-        const areaVendedores =
-          document.getElementById("sellers");
-
-
-        areaVendedores.innerHTML = "";
+        const area =
+          document.getElementById(
+            "sellers"
+          );
 
 
-        if (vendedores.length === 0) {
+        area.innerHTML = "";
 
-          areaVendedores.innerHTML = `
+
+        if (!vendedores.length) {
+
+          area.innerHTML = `
             <div class="error">
               Não existem vendedores no dados.json.
             </div>
           `;
 
           return;
+
         }
 
 
-        vendedores.forEach(vendedor => {
+        /* =================================
+           CRIAR CADA CARTÃO
+        ================================== */
 
-          const objetivo =
-            Number(vendedor.objetivo) || 0;
-
-          const tvBruta =
-            Number(vendedor.tv_bruta) || 0;
-
-          const tvAnulada =
-            Number(vendedor.tv_anulada) || 0;
-
-          const tvInstalada =
-            Number(vendedor.tv_instalada) || 0;
+        vendedores.forEach(
+          vendedor => {
 
 
-          /* TV LÍQUIDA */
-
-          const tvLiquida =
-            tvBruta - tvAnulada;
-
-
-          /* % OBJETIVO */
-
-          const percentagem =
-            objetivo > 0
-              ? (tvLiquida / objetivo) * 100
-              : 0;
+            const objetivo =
+              Number(
+                vendedor.objetivo
+              ) || 0;
 
 
-          /*
-            A barra nunca ultrapassa 100%.
-            A percentagem escrita pode ultrapassar
-            100%, caso o vendedor ultrapasse o objetivo.
-          */
+            const tvBruta =
+              Number(
+                vendedor.tv_bruta
+              ) || 0;
 
-          const percentagemVisual =
-            Math.min(
-              Math.max(percentagem, 0),
-              100
+
+            const tvAnulada =
+              Number(
+                vendedor.tv_anulada
+              ) || 0;
+
+
+            const tvInstalada =
+              Number(
+                vendedor.tv_instalada
+              ) || 0;
+
+
+            /* TV LÍQUIDA */
+
+            const tvLiquida =
+              tvBruta - tvAnulada;
+
+
+            /* PERCENTAGEM */
+
+            const percentagem =
+              objetivo > 0
+                ? (
+                    tvLiquida /
+                    objetivo
+                  ) * 100
+                : 0;
+
+
+            /* PATENTE */
+
+            const patente =
+              obterPatente(
+                percentagem
+              );
+
+
+            /* FOTOGRAFIA */
+
+            const fotosPessoa =
+              fotos[
+                vendedor.nome
+              ];
+
+
+            let fotografia =
+              "TEMPLARIOS.png";
+
+
+            if (
+              fotosPessoa &&
+              fotosPessoa[
+                patente.chave
+              ]
+            ) {
+
+              fotografia =
+                fotosPessoa[
+                  patente.chave
+                ];
+
+            }
+
+
+            /* BARRA */
+
+            const barra =
+              Math.min(
+                Math.max(
+                  percentagem,
+                  0
+                ),
+                100
+              );
+
+
+            /* =================================
+               CARTÃO
+            ================================== */
+
+            const card =
+              document.createElement(
+                "article"
+              );
+
+
+            card.className =
+              "seller-card";
+
+
+            card.innerHTML = `
+
+
+              <div class="photo-frame">
+
+                <img
+                  class="seller-photo"
+                  src="${fotografia}"
+                  alt="Fotografia de ${vendedor.nome}"
+                >
+
+                <div class="rank-badge">
+                  ${patente.nome}
+                </div>
+
+              </div>
+
+
+              <div class="seller-name">
+                ${vendedor.nome}
+              </div>
+
+
+              <div class="seller-objective">
+                Objetivo individual:
+                ${objetivo}
+              </div>
+
+
+              <div class="progress-info">
+
+                <span>
+                  Atingimento
+                </span>
+
+                <span class="percentage">
+                  ${percentagem.toFixed(1)}%
+                </span>
+
+              </div>
+
+
+              <div class="progress">
+
+                <div
+                  class="progress-bar"
+                  style="width:${barra}%"
+                ></div>
+
+              </div>
+
+
+              <div class="seller-stats">
+
+
+                <div class="stat">
+
+                  <div class="stat-label">
+                    TV Bruta
+                  </div>
+
+                  <div class="stat-value">
+                    ${tvBruta}
+                  </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                  <div class="stat-label">
+                    TV Anulada
+                  </div>
+
+                  <div class="stat-value">
+                    ${tvAnulada}
+                  </div>
+
+                </div>
+
+
+                <div class="stat liquid-stat">
+
+                  <div class="stat-label">
+                    TV Líquida
+                  </div>
+
+                  <div class="stat-value">
+                    ${tvLiquida}
+                  </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                  <div class="stat-label">
+                    TV Instalada
+                  </div>
+
+                  <div class="stat-value">
+                    ${tvInstalada}
+                  </div>
+
+                </div>
+
+
+              </div>
+
+
+            `;
+
+
+            area.appendChild(
+              card
             );
 
 
-          /* =========================
-             CARTÃO
-          ========================== */
-
-          const card =
-            document.createElement("article");
-
-
-          card.className =
-            "seller-card";
-
-
-          card.innerHTML = `
-
-            <div class="seller-name">
-              ${vendedor.nome}
-            </div>
-
-            <div class="seller-objective">
-              Objetivo individual:
-              ${objetivo}
-            </div>
-
-
-            <div class="progress-info">
-
-              <span>
-                TV Líquida
-              </span>
-
-              <span class="percentage">
-                ${percentagem.toFixed(1)}%
-              </span>
-
-            </div>
-
-
-            <div class="progress">
-
-              <div
-                class="progress-bar"
-                style="width: ${percentagemVisual}%"
-              ></div>
-
-            </div>
-
-
-            <div class="seller-stats">
-
-
-              <div class="stat">
-
-                <div class="stat-label">
-                  TV Bruta
-                </div>
-
-                <div class="stat-value">
-                  ${tvBruta}
-                </div>
-
-              </div>
-
-
-              <div class="stat">
-
-                <div class="stat-label">
-                  TV Anulada
-                </div>
-
-                <div class="stat-value">
-                  ${tvAnulada}
-                </div>
-
-              </div>
-
-
-              <div class="stat liquid-stat">
-
-                <div class="stat-label">
-                  TV Líquida
-                </div>
-
-                <div class="stat-value">
-                  ${tvLiquida}
-                </div>
-
-              </div>
-
-
-              <div class="stat">
-
-                <div class="stat-label">
-                  TV Instalada
-                </div>
-
-                <div class="stat-value">
-                  ${tvInstalada}
-                </div>
-
-              </div>
-
-
-            </div>
-
-          `;
-
-
-          areaVendedores.appendChild(card);
-
-        });
+          }
+        );
 
 
       } catch (erro) {
 
-        console.error(erro);
+
+        console.error(
+          erro
+        );
 
 
         document.getElementById(
@@ -997,20 +1406,10 @@
 
             <br><br>
 
-            Confirma se estes dois ficheiros
-            estão no mesmo repositório:
-
-            <br><br>
-
-            <strong>
-              index.html
-            </strong>
-
-            <br>
-
-            <strong>
-              dados.json
-            </strong>
+            Confirma que
+            <strong>dados.json</strong>
+            e as fotografias estão no
+            mesmo repositório.
 
           </div>
 
@@ -1021,11 +1420,12 @@
     }
 
 
-    /* =========================
+    /* =====================================
        INICIAR
-    ========================== */
+    ====================================== */
 
     carregarDados();
+
 
   </script>
 

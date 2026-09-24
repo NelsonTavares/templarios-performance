@@ -1,1 +1,517 @@
 
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Templários • Performance</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(150, 20, 20, 0.25), transparent 35%),
+        linear-gradient(135deg, #070707, #111111 50%, #070707);
+      color: #f5f5f5;
+      font-family: Inter, sans-serif;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.08;
+      background-image:
+        linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
+      background-size: 45px 45px;
+    }
+
+    .container {
+      width: min(1400px, 94%);
+      margin: auto;
+      padding: 35px 0 60px;
+      position: relative;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 35px;
+    }
+
+    .crest {
+      width: 82px;
+      height: 82px;
+      margin: 0 auto 18px;
+      border: 2px solid #b9b9b9;
+      transform: rotate(45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #171717, #080808);
+      box-shadow: 0 0 30px rgba(180, 20, 20, .25);
+    }
+
+    .crest span {
+      transform: rotate(-45deg);
+      font-family: Cinzel, serif;
+      font-size: 38px;
+      font-weight: 800;
+      color: #b71919;
+    }
+
+    .eyebrow {
+      color: #b71919;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 4px;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-family: Cinzel, serif;
+      font-size: clamp(32px, 5vw, 62px);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      color: #999;
+      margin-top: 10px;
+      letter-spacing: 2px;
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    .period {
+      display: inline-block;
+      margin-top: 18px;
+      padding: 9px 18px;
+      border: 1px solid #3b3b3b;
+      border-radius: 999px;
+      color: #d8d8d8;
+      background: rgba(255,255,255,.03);
+      font-size: 13px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin: 35px 0 18px;
+      font-family: Cinzel, serif;
+      font-size: 20px;
+      letter-spacing: 1px;
+    }
+
+    .section-title::before {
+      content: "";
+      width: 5px;
+      height: 28px;
+      background: #a91414;
+      display: block;
+    }
+
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+    }
+
+    .metric {
+      background: linear-gradient(145deg, #171717, #0d0d0d);
+      border: 1px solid #2d2d2d;
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 15px 40px rgba(0,0,0,.25);
+    }
+
+    .metric-label {
+      color: #999;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 700;
+    }
+
+    .metric-value {
+      margin-top: 8px;
+      font-family: Cinzel, serif;
+      font-size: 30px;
+      font-weight: 700;
+    }
+
+    .metric.liquid {
+      border-color: #8e1717;
+      background:
+        linear-gradient(145deg, rgba(130,15,15,.25), #101010);
+    }
+
+    .metric.liquid .metric-value {
+      color: #e33a3a;
+    }
+
+    .sellers {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .seller-card {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(145deg, #191919, #0d0d0d);
+      border: 1px solid #303030;
+      border-radius: 14px;
+      padding: 22px;
+      transition: .2s ease;
+    }
+
+    .seller-card:hover {
+      transform: translateY(-3px);
+      border-color: #7d1717;
+      box-shadow: 0 18px 40px rgba(0,0,0,.35);
+    }
+
+    .seller-card::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: #861919;
+    }
+
+    .seller-name {
+      font-family: Cinzel, serif;
+      font-size: 19px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .seller-objective {
+      color: #888;
+      font-size: 12px;
+      margin-bottom: 18px;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 7px;
+      font-size: 12px;
+    }
+
+    .percentage {
+      color: #d83b3b;
+      font-weight: 800;
+    }
+
+    .progress {
+      width: 100%;
+      height: 8px;
+      background: #292929;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #721111, #d42c2c);
+      border-radius: 99px;
+      transition: width .5s ease;
+    }
+
+    .seller-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,.035);
+      border-radius: 8px;
+      padding: 11px;
+    }
+
+    .stat-label {
+      color: #777;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-value {
+      margin-top: 4px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .stat.liquid-stat {
+      border: 1px solid rgba(170,25,25,.4);
+    }
+
+    .stat.liquid-stat .stat-value {
+      color: #e03a3a;
+    }
+
+    footer {
+      margin-top: 50px;
+      text-align: center;
+      color: #555;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .loading,
+    .error {
+      text-align: center;
+      padding: 40px;
+      color: #aaa;
+    }
+
+    .error {
+      color: #e05252;
+    }
+
+    @media (max-width: 1050px) {
+      .team-grid,
+      .sellers {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 650px) {
+      .container {
+        padding-top: 25px;
+      }
+
+      .team-grid,
+      .sellers {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="container">
+
+    <header>
+      <div class="crest">
+        <span>✠</span>
+      </div>
+
+      <div class="eyebrow">ORDEM • DISCIPLINA • PERFORMANCE</div>
+
+      <h1>Templários</h1>
+
+      <div class="subtitle">Performance dos Cavaleiros</div>
+
+      <div class="period" id="periodo">
+        A carregar...
+      </div>
+    </header>
+
+    <div class="section-title">
+      Performance da Ordem
+    </div>
+
+    <section class="team-grid">
+
+      <div class="metric">
+        <div class="metric-label">TV Bruta</div>
+        <div class="metric-value" id="teamBruta">0</div>
+      </div>
+
+      <div class="metric">
+        <div class="metric-label">TV Anulada</div>
+        <div class="metric-value" id="teamAnulada">0</div>
+      </div>
+
+      <div class="metric liquid">
+        <div class="metric-label">TV Líquida</div>
+        <div class="metric-value" id="teamLiquida">0</div>
+      </div>
+
+      <div class="metric">
+        <div class="metric-label">TV Instalada</div>
+        <div class="metric-value" id="teamInstalada">0</div>
+      </div>
+
+    </section>
+
+    <div class="section-title">
+      Performance dos Cavaleiros
+    </div>
+
+    <section class="sellers" id="sellers">
+      <div class="loading">
+        A carregar os dados da Ordem...
+      </div>
+    </section>
+
+    <footer>
+      Templários • A Ordem em Marcha
+    </footer>
+
+  </main>
+
+  <script>
+    async function carregarDados() {
+      try {
+        const resposta = await fetch("dados.json");
+
+        if (!resposta.ok) {
+          throw new Error("Não foi possível carregar o dados.json");
+        }
+
+        const dados = await resposta.json();
+
+        document.getElementById("periodo").textContent =
+          dados.mes || "Período atual";
+
+        const vendedores = dados.vendedores || [];
+
+        let bruta = 0;
+        let anulada = 0;
+        let instalada = 0;
+
+        vendedores.forEach(vendedor => {
+          bruta += Number(vendedor.tv_bruta) || 0;
+          anulada += Number(vendedor.tv_anulada) || 0;
+          instalada += Number(vendedor.tv_instalada) || 0;
+        });
+
+        const liquida = bruta - anulada;
+
+        document.getElementById("teamBruta").textContent = bruta;
+        document.getElementById("teamAnulada").textContent = anulada;
+        document.getElementById("teamLiquida").textContent = liquida;
+        document.getElementById("teamInstalada").textContent = instalada;
+
+        const areaVendedores = document.getElementById("sellers");
+
+        areaVendedores.innerHTML = "";
+
+        vendedores.forEach(vendedor => {
+
+          const objetivo = Number(vendedor.objetivo) || 0;
+          const tvBruta = Number(vendedor.tv_bruta) || 0;
+          const tvAnulada = Number(vendedor.tv_anulada) || 0;
+          const tvInstalada = Number(vendedor.tv_instalada) || 0;
+
+          const tvLiquida = tvBruta - tvAnulada;
+
+          const percentagem =
+            objetivo > 0
+              ? (tvLiquida / objetivo) * 100
+              : 0;
+
+          const percentagemVisual =
+            Math.min(Math.max(percentagem, 0), 100);
+
+          const card = document.createElement("article");
+
+          card.className = "seller-card";
+
+          card.innerHTML = `
+            <div class="seller-name">
+              ${vendedor.nome}
+            </div>
+
+            <div class="seller-objective">
+              Objetivo: ${objetivo}
+            </div>
+
+            <div class="progress-info">
+              <span>TV Líquida</span>
+              <span class="percentage">
+                ${percentagem.toFixed(1)}%
+              </span>
+            </div>
+
+            <div class="progress">
+              <div
+                class="progress-bar"
+                style="width: ${percentagemVisual}%">
+              </div>
+            </div>
+
+            <div class="seller-stats">
+
+              <div class="stat">
+                <div class="stat-label">Bruta</div>
+                <div class="stat-value">
+                  ${tvBruta}
+                </div>
+              </div>
+
+              <div class="stat">
+                <div class="stat-label">Anulada</div>
+                <div class="stat-value">
+                  ${tvAnulada}
+                </div>
+              </div>
+
+              <div class="stat liquid-stat">
+                <div class="stat-label">Líquida</div>
+                <div class="stat-value">
+                  ${tvLiquida}
+                </div>
+              </div>
+
+              <div class="stat">
+                <div class="stat-label">Instalada</div>
+                <div class="stat-value">
+                  ${tvInstalada}
+                </div>
+              </div>
+
+            </div>
+          `;
+
+          areaVendedores.appendChild(card);
+        });
+
+      } catch (erro) {
+
+        document.getElementById("sellers").innerHTML = `
+          <div class="error">
+            Erro ao carregar os dados.
+            <br><br>
+            Confirma se o ficheiro <strong>dados.json</strong>
+            está no mesmo repositório.
+          </div>
+        `;
+
+        console.error(erro);
+      }
+    }
+
+    carregarDados();
+  </script>
+
+</body>
+</html>

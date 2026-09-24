@@ -1052,7 +1052,7 @@
 
         const { data: vendedores, error: erroPerformance } = await supabaseClient
           .from("performance_dashboard")
-          .select("id,seller_id,vendedor,period_id,periodo,objetivo,tv_bruta,tv_anulada,tv_liquida,tv_instalada,percentagem")
+          .select("id,seller_id,vendedor,period_id,periodo,objetivo,tv_bruta,tv_anulada,tv_liquida,tv_instalada,percentagem,ativo")
           .eq("period_id", periodo.id)
           .order("percentagem", { ascending: false });
 
@@ -1081,6 +1081,8 @@
         }
 
         lista.forEach(vendedor => {
+          if (vendedor.ativo === false) return;
+
           const objetivo = Number(vendedor.objetivo) || 0;
           const tvBruta = Number(vendedor.tv_bruta) || 0;
           const tvAnulada = Number(vendedor.tv_anulada) || 0;

@@ -209,7 +209,7 @@
           <div class="section-heading">
             <h2>Importar Excel diário (.xlsb)</h2>
           </div>
-          <div class="note">Seleciona o relatório diário. Serão importadas apenas as linhas do supervisor NELSON TAVARES. Cada importação substitui os créditos importados anteriormente deste supervisor; os objetivos e os valores de TV introduzidos manualmente não são alterados.</div>
+          <div class="note">Seleciona o relatório diário. Serão importadas apenas as linhas do supervisor NELSON TAVARES. Cada importação substitui os créditos importados anteriormente deste supervisor. A coluna ATIVO (S/N) é guardada por linha; não reativa portais nem altera objetivos ou valores de TV introduzidos manualmente.</div>
           <label for="excelFile">Ficheiro Excel (.xlsb)</label>
           <input id="excelFile" type="file" accept=".xlsb,application/vnd.ms-excel.sheet.binary.macroEnabled.12" />
           <button id="importExcelBtn" class="primary" style="margin-top:12px">Importar créditos</button>
@@ -800,8 +800,9 @@
       const sellerKey = keyMap.VENDEDOR;
       const eventKey = keyMap.EVENTO;
       const creditsKey = keyMap.CREDITOS;
-      if (!supKey || !sellerKey || !creditsKey) {
-        throw new Error("Não encontrei as colunas SUPERVISOR, VENDEDOR e CREDITOS na folha '" + sheetName + "'.");
+      const activeKey = keyMap.ATIVO;
+      if (!supKey || !sellerKey || !creditsKey || !activeKey) {
+        throw new Error("Não encontrei todas as colunas necessárias: SUPERVISOR, VENDEDOR, CREDITOS e ATIVO na folha '" + sheetName + "'. A importação anterior foi mantida.");
       }
       const selected = rowsExcel.filter(r => String(r[supKey] ?? "").trim().toLocaleUpperCase("pt-PT") === "NELSON TAVARES");
       if (!selected.length) throw new Error("Não encontrei linhas do supervisor NELSON TAVARES. A importação anterior foi mantida.");
@@ -809,11 +810,16 @@
         const rawCredits = String(r[creditsKey] ?? "0").trim().replace(/\s/g, "").replace(/\.(?=\d{3}(?:\D|$))/g, "").replace(",", ".");
         const credits = Number(rawCredits || 0);
         if (!Number.isFinite(credits)) throw new Error("Foi encontrado um valor CREDITOS inválido.");
+        const ativoRaw = String(r[activeKey] ?? "").trim().toUpperCase();
+        if (ativoRaw !== "S" && ativoRaw !== "N") {
+          throw new Error("Foi encontrado um valor ATIVO diferente de S/N para o vendedor '" + String(r[sellerKey] ?? "").trim() + "'. A importação anterior foi mantida.");
+        }
         return {
           supervisor: "NELSON TAVARES",
           vendedor: String(r[sellerKey] ?? "").trim(),
           evento: eventKey ? String(r[eventKey] ?? "").trim() : "",
-          creditos: credits
+          creditos: credits,
+          ativo: ativoRaw
         };
       }).filter(r => r.vendedor);
       if (!records.length) throw new Error("As linhas do supervisor não contêm vendedores válidos.");
@@ -826,7 +832,9 @@
         const { error: insertError } = await supabaseClient.from("importacao_creditos").insert(records.slice(i, i + 500));
         if (insertError) throw insertError;
       }
-      showImportStatus(`Importação concluída: ${records.length} linhas de NELSON TAVARES guardadas. Os objetivos e valores de TV não foram alterados.`);
+      const ativosExcel = records.filter(r => r.ativo === "S").length;
+      const inativosExcel = records.filter(r => r.ativo === "N").length;
+      showImportStatus(`Importação concluída: ${records.length} linhas guardadas (${ativosExcel} linhas ATIVO=S; ${inativosExcel} linhas ATIVO=N). Os portais, objetivos e valores de TV não foram alterados.`);
     } catch (error) {
       console.error(error);
       showImportStatus(error.message || "Não foi possível importar o ficheiro.", true);

@@ -883,92 +883,75 @@
 
 
     /* =====================================
-       CONFIGURAÇÃO DAS FOTOGRAFIAS
+       FOTOGRAFIAS AUTOMÁTICAS POR NOME E PATENTE
+       Exemplo: KAREN_RECRUTA.PNG
+       O ficheiro de imagem tem de existir no repositório.
     ====================================== */
 
-    const fotos = {
+    function normalizarNomeFicheiro(nome) {
+      return String(nome || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+    }
 
-      "Sir. David": {
-
-        recruta:
-          "RECRUTA_SIR_DAVID.png",
-
-        escudeiro:
-          "ESCUDEIRO_SIR_DAVID.png",
-
-        cavaleiro:
-          "CAVALEIRO_SIR_DAVID.png",
-
-        comendador:
-          "COMENDADOR_SIR_DAVID.png",
-
-        grao_mestre:
-          "GRÃO_MESTRE_SIR_DAVID.png"
-
-      },
-
-
-      "Fearless Kate": {
-
-        recruta:
-          "RECRUTA_FEARLESS_KATE.png",
-
-        escudeiro:
-          "ESCUDEIRO_FEARLESS_KATE.png",
-
-        cavaleiro:
-          "CAVALEIRO_FEARLESS_KATE.png",
-
-        comendador:
-          "COMENDADOR_FEARLESS_KATE.png",
-
-        grao_mestre:
-          "GRÃO_MESTRE_FEARLESS_KATE.png"
-
-      },
-
-
-      "Lord Lili": {
-
-        recruta:
-          "RECRUTA_LILI.png",
-
-        escudeiro:
-          "ESCUDEIRO_LILI.png",
-
-        cavaleiro:
-          "CAVALEIRO_LILI.png",
-
-        comendador:
-          "COMENDADOR_LILI.png",
-
-        grao_mestre:
-          "GRÃO_MESTRE_LILI.png"
-
-      },
-
-
-      "Knight Salvador": {
-
-        recruta:
-          "RECRUTA_KNIGHT_SALVADOR.png",
-
-        escudeiro:
-          "ESCUDEIRO_KNIGHT_SALVADOR.png",
-
-        cavaleiro:
-          "CAVALEIRO_KNIGHT_SALVADOR.png",
-
-        comendador:
-          "COMENDADOR_KNIGHT_SALVADOR.png",
-
-        grao_mestre:
-          "GRÃO_MESTRE_KNIGHT_SALVADOR.png"
-
-      }
-
+    // Compatibilidade com os nomes dos ficheiros que já existem no site.
+    const nomesImagemAntigos = {
+      "Sir. David": "SIR_DAVID",
+      "Fearless Kate": "FEARLESS_KATE",
+      "Lord Lili": "LILI",
+      "Knight Salvador": "KNIGHT_SALVADOR"
     };
 
+    const ficheirosAntigos = {
+      "Sir. David": {
+        recruta: "RECRUTA_SIR_DAVID.png",
+        escudeiro: "ESCUDEIRO_SIR_DAVID.png",
+        cavaleiro: "CAVALEIRO_SIR_DAVID.png",
+        comendador: "COMENDADOR_SIR_DAVID.png",
+        grao_mestre: "GRÃO_MESTRE_SIR_DAVID.png"
+      },
+      "Fearless Kate": {
+        recruta: "RECRUTA_FEARLESS_KATE.png",
+        escudeiro: "ESCUDEIRO_FEARLESS_KATE.png",
+        cavaleiro: "CAVALEIRO_FEARLESS_KATE.png",
+        comendador: "COMENDADOR_FEARLESS_KATE.png",
+        grao_mestre: "GRÃO_MESTRE_FEARLESS_KATE.png"
+      },
+      "Lord Lili": {
+        recruta: "RECRUTA_LILI.png",
+        escudeiro: "ESCUDEIRO_LILI.png",
+        cavaleiro: "CAVALEIRO_LILI.png",
+        comendador: "COMENDADOR_LILI.png",
+        grao_mestre: "GRÃO_MESTRE_LILI.png"
+      },
+      "Knight Salvador": {
+        recruta: "RECRUTA_KNIGHT_SALVADOR.png",
+        escudeiro: "ESCUDEIRO_KNIGHT_SALVADOR.png",
+        cavaleiro: "CAVALEIRO_KNIGHT_SALVADOR.png",
+        comendador: "COMENDADOR_KNIGHT_SALVADOR.png",
+        grao_mestre: "GRÃO_MESTRE_KNIGHT_SALVADOR.png"
+      }
+    };
+
+    function obterImagemPatente(nomeVendedor, chavePatente) {
+      if (ficheirosAntigos[nomeVendedor] && ficheirosAntigos[nomeVendedor][chavePatente]) {
+        return ficheirosAntigos[nomeVendedor][chavePatente];
+      }
+
+      const nomeBase = nomesImagemAntigos[nomeVendedor] || normalizarNomeFicheiro(nomeVendedor);
+      const patenteBase = {
+        recruta: "RECRUTA",
+        escudeiro: "ESCUDEIRO",
+        cavaleiro: "CAVALEIRO",
+        comendador: "COMENDADOR",
+        grao_mestre: "GRAO-MESTRE"
+      }[chavePatente] || "RECRUTA";
+
+      return `${nomeBase}_${patenteBase}.PNG`;
+    }
 
     /* =====================================
        PATENTES
@@ -1090,10 +1073,7 @@
           const tvInstalada = Number(vendedor.tv_instalada) || 0;
           const percentagem = Number(vendedor.percentagem) || 0;
           const patente = obterPatente(percentagem);
-          const fotosPessoa = fotos[vendedor.vendedor];
-          let fotografia = "TEMPLARIOS.png";
-
-          if (fotosPessoa && fotosPessoa[patente.chave]) fotografia = fotosPessoa[patente.chave];
+          const fotografia = obterImagemPatente(vendedor.vendedor, patente.chave);
 
           const barra = Math.min(Math.max(percentagem, 0), 100);
           const card = document.createElement("article");

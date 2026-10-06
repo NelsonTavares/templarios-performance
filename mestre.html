@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{
@@ -202,6 +203,17 @@
             <div id="periodLabel" class="period">A carregar período...</div>
           </div>
           <button id="logoutBtn" class="logout">Sair</button>
+        </div>
+
+        <div class="section">
+          <div class="section-heading">
+            <h2>Importar Excel diário (.xlsb)</h2>
+          </div>
+          <div class="note">Seleciona o relatório diário. Serão importadas apenas as linhas do supervisor NELSON TAVARES. Cada importação substitui os créditos importados anteriormente deste supervisor; os objetivos e os valores de TV introduzidos manualmente não são alterados.</div>
+          <label for="excelFile">Ficheiro Excel (.xlsb)</label>
+          <input id="excelFile" type="file" accept=".xlsb,application/vnd.ms-excel.sheet.binary.macroEnabled.12" />
+          <button id="importExcelBtn" class="primary" style="margin-top:12px">Importar créditos</button>
+          <div id="importStatus" class="status hidden"></div>
         </div>
 
         <div class="section">
@@ -754,6 +766,77 @@
     document.getElementById("password").value = "";
     showLoginStatus("Sessão terminada.");
   });
+
+  function normalizeHeader(value){
+    return String(value ?? "").trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, "_");
+  }
+
+  function showImportStatus(message, error=false){
+    const el = document.getElementById("importStatus");
+    el.textContent = message;
+    el.className = "status " + (error ? "error" : "ok");
+  }
+
+  async function importarExcel(){
+    const input = document.getElementById("excelFile");
+    const button = document.getElementById("importExcelBtn");
+    const file = input.files && input.files[0];
+    if (!file) { showImportStatus("Seleciona primeiro o ficheiro .xlsb.", true); return; }
+    if (!/\.xlsb$/i.test(file.name)) { showImportStatus("O ficheiro tem de estar no formato .xlsb.", true); return; }
+    button.disabled = true;
+    button.textContent = "A ler Excel...";
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
+      const sheetName = workbook.SheetNames.find(n => normalizeHeader(n) === "DETALHE") || workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      if (!sheet) throw new Error("Não foi encontrada uma folha de dados no ficheiro.");
+      const rowsExcel = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+      if (!rowsExcel.length) throw new Error("A folha escolhida não tem linhas de dados.");
+      const first = rowsExcel[0];
+      const keyMap = {};
+      Object.keys(first).forEach(k => keyMap[normalizeHeader(k)] = k);
+      const supKey = keyMap.SUPERVISOR;
+      const sellerKey = keyMap.VENDEDOR;
+      const eventKey = keyMap.EVENTO;
+      const creditsKey = keyMap.CREDITOS;
+      if (!supKey || !sellerKey || !creditsKey) {
+        throw new Error("Não encontrei as colunas SUPERVISOR, VENDEDOR e CREDITOS na folha '" + sheetName + "'.");
+      }
+      const selected = rowsExcel.filter(r => String(r[supKey] ?? "").trim().toLocaleUpperCase("pt-PT") === "NELSON TAVARES");
+      if (!selected.length) throw new Error("Não encontrei linhas do supervisor NELSON TAVARES. A importação anterior foi mantida.");
+      const records = selected.map(r => {
+        const rawCredits = String(r[creditsKey] ?? "0").trim().replace(/\s/g, "").replace(/\.(?=\d{3}(?:\D|$))/g, "").replace(",", ".");
+        const credits = Number(rawCredits || 0);
+        if (!Number.isFinite(credits)) throw new Error("Foi encontrado um valor CREDITOS inválido.");
+        return {
+          supervisor: "NELSON TAVARES",
+          vendedor: String(r[sellerKey] ?? "").trim(),
+          evento: eventKey ? String(r[eventKey] ?? "").trim() : "",
+          creditos: credits
+        };
+      }).filter(r => r.vendedor);
+      if (!records.length) throw new Error("As linhas do supervisor não contêm vendedores válidos.");
+      const confirmImport = window.confirm(`Foram encontradas ${records.length} linhas de NELSON TAVARES. Esta ação substitui os créditos importados anteriormente deste supervisor. Continuar?`);
+      if (!confirmImport) return;
+      button.textContent = "A substituir dados...";
+      const { error: deleteError } = await supabaseClient.from("importacao_creditos").delete().eq("supervisor", "NELSON TAVARES");
+      if (deleteError) throw deleteError;
+      for (let i = 0; i < records.length; i += 500) {
+        const { error: insertError } = await supabaseClient.from("importacao_creditos").insert(records.slice(i, i + 500));
+        if (insertError) throw insertError;
+      }
+      showImportStatus(`Importação concluída: ${records.length} linhas de NELSON TAVARES guardadas. Os objetivos e valores de TV não foram alterados.`);
+    } catch (error) {
+      console.error(error);
+      showImportStatus(error.message || "Não foi possível importar o ficheiro.", true);
+    } finally {
+      button.disabled = false;
+      button.textContent = "Importar créditos";
+    }
+  }
+
+  document.getElementById("importExcelBtn").addEventListener("click", importarExcel);
 
   document.getElementById("reloadBtn").addEventListener("click", carregarDados);
   document.getElementById("addInactiveBtn").addEventListener("click", criarPortalInativo);

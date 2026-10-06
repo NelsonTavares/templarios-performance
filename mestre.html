@@ -207,7 +207,10 @@
         <div class="section">
           <div class="section-heading">
             <h2>Performance dos Cavaleiros</h2>
-            <button id="reloadBtn" class="secondary">Atualizar</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button id="addActiveBtn" class="primary">+ Novo portal ativo</button>
+              <button id="reloadBtn" class="secondary">Atualizar</button>
+            </div>
           </div>
 
           <div class="table-wrap">
@@ -275,8 +278,8 @@
 <script>
   const SUPABASE_URL = "https://sldhftvtoeolkhmezoyx.supabase.co";
 
-  // Usa aqui a MESMA Publishable Key que já está no teu index.html.
-  const SUPABASE_KEY = "sb_publishable_ktyOdBXYTRKEpeVMnEraig_JJIBWNH0";
+  // Substitui pelo valor da tua Publishable Key do Supabase.
+  const SUPABASE_KEY = "COLOCA_A_TUA_PUBLISHABLE_KEY_AQUI";
 
   const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
@@ -643,6 +646,66 @@
     }
   }
 
+  async function criarPortalAtivo(){
+    if (!periodoAtual) {
+      showAppStatus("Não foi possível identificar o período ativo.", true);
+      return;
+    }
+
+    const nome = window.prompt("Nome do novo Portal Ativo:");
+    if (nome === null) return;
+    const nomeLimpo = nome.trim();
+
+    if (!nomeLimpo) {
+      showAppStatus("O nome do portal é obrigatório.", true);
+      return;
+    }
+
+    try {
+      const { data: existing, error: existingError } = await supabaseClient
+        .from("sellers")
+        .select("id,nome")
+        .ilike("nome", nomeLimpo);
+
+      if (existingError) throw existingError;
+      if (existing && existing.length) {
+        throw new Error("Já existe um comercial/portal com esse nome.");
+      }
+
+      const { data: seller, error: sellerError } = await supabaseClient
+        .from("sellers")
+        .insert({ nome: nomeLimpo, ativo: true })
+        .select("id,nome")
+        .single();
+
+      if (sellerError) throw sellerError;
+
+      const { error: performanceError } = await supabaseClient
+        .from("performance")
+        .insert({
+          seller_id: seller.id,
+          period_id: periodoAtual.id,
+          objetivo: 0,
+          tv_bruta: 0,
+          tv_anulada: 0,
+          tv_instalada: 0
+        });
+
+      if (performanceError) {
+        // Tenta remover o vendedor se não foi possível criar a performance.
+        await supabaseClient.from("sellers").delete().eq("id", seller.id);
+        throw performanceError;
+      }
+
+      showAppStatus(`Portal Ativo "${nomeLimpo}" criado com sucesso.`);
+      await carregarDados();
+
+    } catch(error) {
+      console.error(error);
+      showAppStatus(error.message || "Erro ao criar Portal Ativo.", true);
+    }
+  }
+
   function escapeHtml(value){
     return String(value)
       .replaceAll("&","&amp;")
@@ -698,6 +761,7 @@
 
   document.getElementById("reloadBtn").addEventListener("click", carregarDados);
   document.getElementById("addInactiveBtn").addEventListener("click", criarPortalInativo);
+  document.getElementById("addActiveBtn").addEventListener("click", criarPortalAtivo);
 
   document.getElementById("password").addEventListener("keydown", event => {
     if (event.key === "Enter") document.getElementById("loginBtn").click();

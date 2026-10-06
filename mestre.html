@@ -433,10 +433,6 @@
               throw new Error("Os valores não podem ser negativos.");
             }
 
-            if (anuladaNova > brutaNova) {
-              throw new Error("TV Anulada não pode ser superior à TV Bruta.");
-            }
-
             const { error: updateError } = await supabaseClient
               .from("performance")
               .update({

@@ -234,13 +234,14 @@
                   <th>TV Bruta</th>
                   <th>TV Anulada</th>
                   <th>TV Líquida</th>
+                  <th>Créditos</th>
                   <th>TV Instalada</th>
                   <th>% Objetivo</th>
                   <th>Guardar</th>
                 </tr>
               </thead>
               <tbody id="rows">
-                <tr><td colspan="8">A carregar...</td></tr>
+                <tr><td colspan="9">A carregar...</td></tr>
               </tbody>
             </table>
           </div>
@@ -369,8 +370,8 @@
   }
 
   async function carregarDados(){
-    rows.innerHTML = '<tr><td colspan="8">A carregar...</td></tr>';
-    inactiveRows.innerHTML = '<tr><td colspan="4">A carregar...</td></tr>';
+    rows.innerHTML = '<tr><td colspan="9">A carregar...</td></tr>';
+    inactiveRows.innerHTML = '<tr><td colspan="6">A carregar...</td></tr>';
 
     try {
       periodoAtual = await obterPeriodoAtual();
@@ -378,7 +379,7 @@
 
       const { data, error } = await supabaseClient
         .from("performance_dashboard")
-        .select("id,seller_id,vendedor,period_id,objetivo,tv_bruta,tv_anulada,tv_liquida,tv_instalada,percentagem,ativo")
+        .select("id,seller_id,vendedor,period_id,objetivo,tv_bruta,tv_anulada,tv_liquida,tv_instalada,percentagem,ativo,creditos")
         .eq("period_id", periodoAtual.id)
         .order("vendedor", { ascending:true });
 
@@ -391,14 +392,14 @@
       rows.innerHTML = "";
 
       if (!ativos.length) {
-        rows.innerHTML = '<tr><td colspan="8">Não existem Cavaleiros ativos neste período.</td></tr>';
+        rows.innerHTML = '<tr><td colspan="9">Não existem Cavaleiros ativos neste período.</td></tr>';
       }
 
       ativos.forEach(item => {
         const objetivo = numberValue(item.objetivo);
         const bruta = numberValue(item.tv_bruta);
         const anulada = numberValue(item.tv_anulada);
-        const liquida = bruta - anulada;
+        const liquida = bruta + anulada;
         const instalada = numberValue(item.tv_instalada);
         const pct = percentage(liquida, objetivo);
 
@@ -410,6 +411,7 @@
           <td><input class="cell-input bruta" type="number" min="0" value="${bruta}"></td>
           <td><input class="cell-input anulada" type="number" min="0" value="${anulada}"></td>
           <td class="liquid">${liquida}</td>
+          <td class="creditos">${numberValue(item.creditos)}</td>
           <td><input class="cell-input instalada" type="number" min="0" value="${instalada}"></td>
           <td class="percent">${pct.toFixed(1)}%</td>
           <td><button class="primary save">Guardar</button></td>
@@ -423,7 +425,7 @@
           const o = numberValue(tr.querySelector(".objetivo").value);
           const b = numberValue(tr.querySelector(".bruta").value);
           const a = numberValue(tr.querySelector(".anulada").value);
-          const l = b - a;
+          const l = b + a;
           liquidCell.textContent = l;
           percentCell.textContent = percentage(l, o).toFixed(1) + "%";
         }
@@ -448,10 +450,9 @@
             const { error: updateError } = await supabaseClient
               .from("performance")
               .update({
-                objetivo: objetivoNovo,
                 tv_bruta: brutaNova,
                 tv_anulada: anuladaNova,
-                tv_instalada: instaladaNova
+                creditos: numberValue(item.creditos)
               })
               .eq("id", item.id)
               .eq("period_id", periodoAtual.id);
@@ -485,7 +486,7 @@
       inativos.forEach(item => {
         const bruta = numberValue(item.tv_bruta);
         const anulada = numberValue(item.tv_anulada);
-        const liquida = bruta - anulada;
+        const liquida = bruta + anulada;
 
         const tr = document.createElement("tr");
 
@@ -505,7 +506,7 @@
         const atualizarLiquida = () => {
           const brutaAtual = numberValue(brutaInput.value);
           const anuladaAtual = numberValue(anuladaInput.value);
-          liquidaCell.textContent = brutaAtual - anuladaAtual;
+          liquidaCell.textContent = brutaAtual + anuladaAtual;
         };
 
         brutaInput.addEventListener("input", atualizarLiquida);
@@ -585,8 +586,8 @@
 
     } catch(error) {
       console.error(error);
-      rows.innerHTML = `<tr><td colspan="8" style="color:#ff6268">${escapeHtml(error.message || "Erro ao carregar dados.")}</td></tr>`;
-      inactiveRows.innerHTML = `<tr><td colspan="4" style="color:#ff6268">${escapeHtml(error.message || "Erro ao carregar dados.")}</td></tr>`;
+      rows.innerHTML = `<tr><td colspan="9" style="color:#ff6268">${escapeHtml(error.message || "Erro ao carregar dados.")}</td></tr>`;
+      inactiveRows.innerHTML = `<tr><td colspan="6" style="color:#ff6268">${escapeHtml(error.message || "Erro ao carregar dados.")}</td></tr>`;
       showAppStatus(error.message || "Erro ao carregar dados.", true);
     }
   }
@@ -784,60 +785,92 @@
     if (!file) { showImportStatus("Seleciona primeiro o ficheiro .xlsb.", true); return; }
     if (!/\.xlsb$/i.test(file.name)) { showImportStatus("O ficheiro tem de estar no formato .xlsb.", true); return; }
     button.disabled = true;
-    button.textContent = "A ler Excel...";
+    button.textContent = "A ler Mapa Resumo...";
     try {
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
-      const sheetName = workbook.SheetNames.find(n => normalizeHeader(n) === "DETALHE") || workbook.SheetNames[0];
+      const sheetName = workbook.SheetNames.find(n => normalizeHeader(n) === "MAPA_RESUMO_INTELCIA_TV");
+      if (!sheetName) throw new Error("Não encontrei a folha Mapa Resumo_INTELCIA_TV.");
       const sheet = workbook.Sheets[sheetName];
-      if (!sheet) throw new Error("Não foi encontrada uma folha de dados no ficheiro.");
-      const rowsExcel = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
-      if (!rowsExcel.length) throw new Error("A folha escolhida não tem linhas de dados.");
-      const first = rowsExcel[0];
-      const keyMap = {};
-      Object.keys(first).forEach(k => keyMap[normalizeHeader(k)] = k);
-      const supKey = keyMap.SUPERVISOR;
-      const sellerKey = keyMap.VENDEDOR;
-      const eventKey = keyMap.EVENTO;
-      const creditsKey = keyMap.CREDITOS;
-      const activeKey = keyMap.ATIVO;
-      if (!supKey || !sellerKey || !creditsKey || !activeKey) {
-        throw new Error("Não encontrei todas as colunas necessárias: SUPERVISOR, VENDEDOR, CREDITOS e ATIVO na folha '" + sheetName + "'. A importação anterior foi mantida.");
+      const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+      const headerIndex = matrix.findIndex(r => r.some(v => normalizeHeader(v) === "VENDEDOR") && r.some(v => normalizeHeader(v) === "ATIVO") && r.some(v => normalizeHeader(v) === "VB") && r.some(v => normalizeHeader(v) === "VA") && r.some(v => normalizeHeader(v) === "VL"));
+      if (headerIndex < 0) throw new Error("Não encontrei o cabeçalho VB/VA/VL/ATIVO no Mapa Resumo_INTELCIA_TV.");
+      const header = matrix[headerIndex];
+      const col = name => header.findIndex(v => normalizeHeader(v) === normalizeHeader(name));
+      const vendedorCol = col("VENDEDOR"), ativoCol = col("ATIVO"), vbCol = col("VB"), vaCol = col("VA"), vlCol = col("VL"), creditosCol = header.findIndex(v => normalizeHeader(v) === "TOTAL" && header.slice(0, v).length);
+      if ([vendedorCol, ativoCol, vbCol, vaCol, vlCol].some(i => i < 0)) throw new Error("Faltam colunas necessárias no Mapa Resumo_INTELCIA_TV.");
+      // No pivot, o Total de créditos fica na segunda área, coluna imediatamente a seguir a VENDEDOR.
+      const totalCandidates = [];
+      header.forEach((v,i) => { if (normalizeHeader(v) === "TOTAL") totalCandidates.push(i); });
+      const creditsCol = totalCandidates.find(i => i > vendedorCol) ?? -1;
+      if (creditsCol < 0) throw new Error("Não encontrei a coluna Total de Créditos no Mapa Resumo_INTELCIA_TV.");
+
+      // O Mapa Resumo é um pivot hierárquico. Procuramos exclusivamente os quatro vendedores
+      // mapeados e não usamos dados da folha de detalhe nem dados de clientes.
+      const startRow = headerIndex + 1;
+      const endRow = matrix.length;
+
+      const mapping = {
+        "AGEU SILVESTRE AMERICANO SALVADOR": "Knight Salvador",
+        "DAVID AFONSO DOS SANTOS PEREIRA": "Sir. DAVID",
+        "LILIANA JESUS SANTOS DE MATOS": "LORD LILI",
+        "CATARINA SOFIA SIMOES DA SILVA": "FEARLESS KATE"
+      };
+      const parseNum = value => {
+        const x = String(value ?? "").trim().replace(/\s/g, "").replace(/\.(?=\d{3}(?:\D|$))/g, "").replace(",", ".");
+        const n = Number(x || 0); return Number.isFinite(n) ? n : 0;
+      };
+      const records = [];
+      for (let i = startRow; i < endRow; i++) {
+        const realName = String(matrix[i][vendedorCol] ?? "").trim();
+        const ativo = String(matrix[i][ativoCol] ?? "").trim().toUpperCase();
+        if (!realName || (ativo !== "S" && ativo !== "N")) continue;
+        const portal = mapping[normalizeHeader(realName)];
+        if (!portal) continue;
+        records.push({
+          realName, portal, ativo,
+          vb: parseNum(matrix[i][vbCol]),
+          va: parseNum(matrix[i][vaCol]),
+          vl: parseNum(matrix[i][vlCol]),
+          creditos: parseNum(matrix[i][creditsCol])
+        });
       }
-      const selected = rowsExcel.filter(r => String(r[supKey] ?? "").trim().toLocaleUpperCase("pt-PT") === "NELSON TAVARES");
-      if (!selected.length) throw new Error("Não encontrei linhas do supervisor NELSON TAVARES. A importação anterior foi mantida.");
-      const records = selected.map(r => {
-        const rawCredits = String(r[creditsKey] ?? "0").trim().replace(/\s/g, "").replace(/\.(?=\d{3}(?:\D|$))/g, "").replace(",", ".");
-        const credits = Number(rawCredits || 0);
-        if (!Number.isFinite(credits)) throw new Error("Foi encontrado um valor CREDITOS inválido.");
-        const ativoRaw = String(r[activeKey] ?? "").trim().toUpperCase();
-        if (ativoRaw !== "S" && ativoRaw !== "N") {
-          throw new Error("Foi encontrado um valor ATIVO diferente de S/N para o vendedor '" + String(r[sellerKey] ?? "").trim() + "'. A importação anterior foi mantida.");
-        }
-        return {
-          supervisor: "NELSON TAVARES",
-          vendedor: String(r[sellerKey] ?? "").trim(),
-          evento: eventKey ? String(r[eventKey] ?? "").trim() : "",
-          creditos: credits,
-          ativo: ativoRaw
-        };
-      }).filter(r => r.vendedor);
-      if (!records.length) throw new Error("As linhas do supervisor não contêm vendedores válidos.");
-      const confirmImport = window.confirm(`Foram encontradas ${records.length} linhas de NELSON TAVARES. Esta ação substitui os créditos importados anteriormente deste supervisor. Continuar?`);
-      if (!confirmImport) return;
-      button.textContent = "A substituir dados...";
-      const { error: deleteError } = await supabaseClient.from("importacao_creditos").delete().eq("supervisor", "NELSON TAVARES");
+      if (!records.length) throw new Error("Não encontrei os quatro Cavaleiros mapeados no bloco de NELSON TAVARES.");
+      const preview = records.map(r => `${r.portal}: VB ${r.vb}, VA ${r.va}, VL ${r.vl}, Créditos ${r.creditos}`).join("\n");
+      if (!window.confirm(`Vou atualizar apenas VB, VA, VL e Créditos dos portais mapeados de NELSON TAVARES.\n\nObjetivo mensal e TV instalada NÃO serão alterados.\n\n${preview}\n\nContinuar?`)) return;
+      button.textContent = "A atualizar performance...";
+
+      for (const record of records) {
+        const { data: seller, error: sellerError } = await supabaseClient
+          .from("sellers").select("id,nome,ativo").ilike("nome", record.portal).maybeSingle();
+        if (sellerError) throw sellerError;
+        if (!seller) throw new Error(`O portal "${record.portal}" não existe. Nada foi criado automaticamente.`);
+
+        const { data: perf, error: perfError } = await supabaseClient
+          .from("performance").select("id").eq("seller_id", seller.id).eq("period_id", periodoAtual.id).maybeSingle();
+        if (perfError) throw perfError;
+        if (!perf) throw new Error(`Não existe performance para "${record.portal}" no período ativo.`);
+
+        const { error: updateError } = await supabaseClient.from("performance").update({
+          tv_bruta: record.vb,
+          tv_anulada: record.va,
+          creditos: record.creditos
+        }).eq("id", perf.id).eq("period_id", periodoAtual.id);
+        if (updateError) throw updateError;
+      }
+
+      // Mantém também o detalhe dos créditos importados, sem usar dados de clientes.
+      const creditRows = records.map(r => ({ supervisor:"NELSON TAVARES", vendedor:r.realName, evento:"Mapa Resumo_INTELCIA_TV", creditos:r.creditos, ativo:r.ativo }));
+      const { error: deleteError } = await supabaseClient.from("importacao_creditos").delete().eq("supervisor","NELSON TAVARES");
       if (deleteError) throw deleteError;
-      for (let i = 0; i < records.length; i += 500) {
-        const { error: insertError } = await supabaseClient.from("importacao_creditos").insert(records.slice(i, i + 500));
-        if (insertError) throw insertError;
-      }
-      const ativosExcel = records.filter(r => r.ativo === "S").length;
-      const inativosExcel = records.filter(r => r.ativo === "N").length;
-      showImportStatus(`Importação concluída: ${records.length} linhas guardadas (${ativosExcel} linhas ATIVO=S; ${inativosExcel} linhas ATIVO=N). Os portais, objetivos e valores de TV não foram alterados.`);
+      const { error: insertError } = await supabaseClient.from("importacao_creditos").insert(creditRows);
+      if (insertError) throw insertError;
+
+      showImportStatus(`Atualização concluída: ${records.length} Cavaleiros atualizados. VB, VA, VL e Créditos foram atualizados. Objetivos e TV instalada não foram alterados.`);
+      await carregarDados();
     } catch (error) {
       console.error(error);
-      showImportStatus(error.message || "Não foi possível importar o ficheiro.", true);
+      showImportStatus(error.message || "Não foi possível atualizar o ficheiro.", true);
     } finally {
       button.disabled = false;
       button.textContent = "Importar créditos";

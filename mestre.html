@@ -784,90 +784,176 @@
     const file = input.files && input.files[0];
     if (!file) { showImportStatus("Seleciona primeiro o ficheiro .xlsb.", true); return; }
     if (!/\.xlsb$/i.test(file.name)) { showImportStatus("O ficheiro tem de estar no formato .xlsb.", true); return; }
+
     button.disabled = true;
     button.textContent = "A ler Mapa Resumo...";
+
     try {
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
+      const workbook = XLSX.read(buffer, { type: "array", cellDates: false, raw: false });
       const sheetName = workbook.SheetNames.find(n => normalizeHeader(n) === "MAPA_RESUMO_INTELCIA_TV");
       if (!sheetName) throw new Error("Não encontrei a folha Mapa Resumo_INTELCIA_TV.");
+
       const sheet = workbook.Sheets[sheetName];
       const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
-      const headerIndex = matrix.findIndex(r => r.some(v => normalizeHeader(v) === "VENDEDOR") && r.some(v => normalizeHeader(v) === "ATIVO") && r.some(v => normalizeHeader(v) === "VB") && r.some(v => normalizeHeader(v) === "VA") && r.some(v => normalizeHeader(v) === "VL"));
-      if (headerIndex < 0) throw new Error("Não encontrei o cabeçalho VB/VA/VL/ATIVO no Mapa Resumo_INTELCIA_TV.");
-      const header = matrix[headerIndex];
-      const col = name => header.findIndex(v => normalizeHeader(v) === normalizeHeader(name));
-      const vendedorCol = col("VENDEDOR"), ativoCol = col("ATIVO"), vbCol = col("VB"), vaCol = col("VA"), vlCol = col("VL"), creditosCol = header.findIndex(v => normalizeHeader(v) === "TOTAL" && header.slice(0, v).length);
-      if ([vendedorCol, ativoCol, vbCol, vaCol, vlCol].some(i => i < 0)) throw new Error("Faltam colunas necessárias no Mapa Resumo_INTELCIA_TV.");
-      // No pivot, o Total de créditos fica na segunda área, coluna imediatamente a seguir a VENDEDOR.
-      const totalCandidates = [];
-      header.forEach((v,i) => { if (normalizeHeader(v) === "TOTAL") totalCandidates.push(i); });
-      const creditsCol = totalCandidates.find(i => i > vendedorCol) ?? -1;
-      if (creditsCol < 0) throw new Error("Não encontrei a coluna Total de Créditos no Mapa Resumo_INTELCIA_TV.");
+      if (!matrix.length) throw new Error("A folha Mapa Resumo_INTELCIA_TV está vazia.");
 
-      // O Mapa Resumo é um pivot hierárquico. Procuramos exclusivamente os quatro vendedores
-      // mapeados e não usamos dados da folha de detalhe nem dados de clientes.
-      const startRow = headerIndex + 1;
-      const endRow = matrix.length;
+      // Estrutura confirmada do Mapa Resumo_INTELCIA_TV:
+      // D=VENDEDOR, E=ATIVO, J=VB, K=VA, L=VL e AB=Total de Créditos.
+      // Os índices abaixo são zero-based.
+      const VENDEDOR = 4;
+      const ATIVO = 5;
+      const VB = 10;
+      const VA = 11;
+      const VL = 12;
+      const CREDITOS = 27;
+      const SUPER = 3;
 
       const mapping = {
-        "AGEU_SILVESTRE_AMERICANO_SALVADOR": "Knight Salvador",
-        "DAVID_AFONSO_DOS_SANTOS_PEREIRA": "Sir. DAVID",
-        "LILIANA_JESUS_SANTOS_DE_MATOS": "LORD LILI",
-        "CATARINA_SOFIA_SIMOES_DA_SILVA": "FEARLESS KATE"
+        "AGEU SILVESTRE AMERICANO SALVADOR": "Knight Salvador",
+        "DAVID AFONSO DOS SANTOS PEREIRA": "Sir. DAVID",
+        "LILIANA JESUS SANTOS DE MATOS": "LORD LILI",
+        "CATARINA SOFIA SIMOES DA SILVA": "FEARLESS KATE"
       };
+
+      const cleanName = value => String(value ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
+
       const parseNum = value => {
-        const x = String(value ?? "").trim().replace(/\s/g, "").replace(/\.(?=\d{3}(?:\D|$))/g, "").replace(",", ".");
-        const n = Number(x || 0); return Number.isFinite(n) ? n : 0;
+        let text = String(value ?? "").trim().replace(/\s/g, "");
+        if (!text) return 0;
+        // Aceita tanto 66,0851 como 66.0851.
+        if (text.includes(",") && text.includes(".")) {
+          text = text.replace(/\./g, "").replace(",", ".");
+        } else {
+          text = text.replace(",", ".");
+        }
+        const n = Number(text);
+        return Number.isFinite(n) ? n : 0;
       };
+
+      // Encontrar o bloco do supervisor NELSON TAVARES na estrutura hierárquica do pivot.
+      let nelsonRow = -1;
+      for (let i = 0; i < matrix.length; i++) {
+        if (cleanName(matrix[i][SUPER]) === "NELSON TAVARES") {
+          nelsonRow = i;
+          break;
+        }
+      }
+      if (nelsonRow < 0) throw new Error("Não encontrei o bloco do supervisor NELSON TAVARES.");
+
       const records = [];
-      for (let i = startRow; i < endRow; i++) {
-        const realName = String(matrix[i][vendedorCol] ?? "").trim();
-        const ativo = String(matrix[i][ativoCol] ?? "").trim().toUpperCase();
-        if (!realName || (ativo !== "S" && ativo !== "N")) continue;
-        const portal = mapping[normalizeHeader(realName)];
+      for (let i = nelsonRow + 1; i < matrix.length; i++) {
+        // O próximo supervisor aparece novamente na coluna SUPER.
+        if (String(matrix[i][SUPER] ?? "").trim()) break;
+
+        const realName = String(matrix[i][VENDEDOR] ?? "").trim();
+        const portal = mapping[cleanName(realName)];
         if (!portal) continue;
+
+        const ativo = String(matrix[i][ATIVO] ?? "").trim().toUpperCase();
+        if (ativo !== "S" && ativo !== "N") continue;
+
         records.push({
-          realName, portal, ativo,
-          vb: parseNum(matrix[i][vbCol]),
-          va: parseNum(matrix[i][vaCol]),
-          vl: parseNum(matrix[i][vlCol]),
-          creditos: parseNum(matrix[i][creditsCol])
+          realName,
+          portal,
+          ativo,
+          vb: parseNum(matrix[i][VB]),
+          va: parseNum(matrix[i][VA]),
+          vl: parseNum(matrix[i][VL]),
+          creditos: parseNum(matrix[i][CREDITOS])
         });
       }
-      if (!records.length) throw new Error("Não encontrei os quatro Cavaleiros mapeados no bloco de NELSON TAVARES.");
-      const preview = records.map(r => `${r.portal}: VB ${r.vb}, VA ${r.va}, VL ${r.vl}, Créditos ${r.creditos}`).join("\n");
-      if (!window.confirm(`Vou atualizar apenas VB, VA, VL e Créditos dos portais mapeados de NELSON TAVARES.\n\nObjetivo mensal e TV instalada NÃO serão alterados.\n\n${preview}\n\nContinuar?`)) return;
+
+      if (!records.length) {
+        throw new Error("Não encontrei os quatro Cavaleiros mapeados no bloco de NELSON TAVARES.");
+      }
+
+      const preview = records.map(r =>
+        `${r.portal}: VB ${r.vb}, VA ${r.va}, VL ${r.vl}, Créditos ${r.creditos}`
+      ).join("\n");
+
+      if (!window.confirm(
+        `Foram encontrados ${records.length} Cavaleiros no Mapa Resumo_INTELCIA_TV.\n\n` +
+        `Serão atualizados apenas VB, VA, VL e Créditos.\n` +
+        `Objetivo mensal e TV instalada NÃO serão alterados.\n\n` +
+        preview +
+        `\n\nContinuar?`
+      )) return;
+
       button.textContent = "A atualizar performance...";
 
       for (const record of records) {
         const { data: seller, error: sellerError } = await supabaseClient
-          .from("sellers").select("id,nome,ativo").ilike("nome", record.portal).maybeSingle();
+          .from("sellers")
+          .select("id,nome,ativo")
+          .ilike("nome", record.portal)
+          .maybeSingle();
+
         if (sellerError) throw sellerError;
         if (!seller) throw new Error(`O portal "${record.portal}" não existe. Nada foi criado automaticamente.`);
 
+        // Se o Excel indicar N, não reativamos o portal.
+        // O objetivo e a TV instalada permanecem intocados.
         const { data: perf, error: perfError } = await supabaseClient
-          .from("performance").select("id").eq("seller_id", seller.id).eq("period_id", periodoAtual.id).maybeSingle();
+          .from("performance")
+          .select("id")
+          .eq("seller_id", seller.id)
+          .eq("period_id", periodoAtual.id)
+          .maybeSingle();
+
         if (perfError) throw perfError;
         if (!perf) throw new Error(`Não existe performance para "${record.portal}" no período ativo.`);
 
-        const { error: updateError } = await supabaseClient.from("performance").update({
-          tv_bruta: record.vb,
-          tv_anulada: record.va,
-          creditos: record.creditos
-        }).eq("id", perf.id).eq("period_id", periodoAtual.id);
+        // O modelo atual guarda TV Anulada como valor positivo e calcula VL = VB - VA.
+        // Como o Mapa Resumo fornece VA assinado, usamos o módulo de VA para preservar
+        // exatamente a VL apresentada no Excel.
+        const { error: updateError } = await supabaseClient
+          .from("performance")
+          .update({
+            tv_bruta: record.vb,
+            tv_anulada: Math.abs(record.va),
+            creditos: record.creditos
+          })
+          .eq("id", perf.id)
+          .eq("period_id", periodoAtual.id);
+
         if (updateError) throw updateError;
+
+        // Se o portal estiver inativo no sistema, não o reativamos.
+        // O estado ATIVO do Excel fica registado na importação para referência.
       }
 
-      // Mantém também o detalhe dos créditos importados, sem usar dados de clientes.
-      const creditRows = records.map(r => ({ supervisor:"NELSON TAVARES", vendedor:r.realName, evento:"Mapa Resumo_INTELCIA_TV", creditos:r.creditos, ativo:r.ativo }));
-      const { error: deleteError } = await supabaseClient.from("importacao_creditos").delete().eq("supervisor","NELSON TAVARES");
+      const creditRows = records.map(r => ({
+        supervisor: "NELSON TAVARES",
+        vendedor: r.realName,
+        evento: "Mapa Resumo_INTELCIA_TV",
+        creditos: r.creditos,
+        ativo: r.ativo
+      }));
+
+      const { error: deleteError } = await supabaseClient
+        .from("importacao_creditos")
+        .delete()
+        .eq("supervisor", "NELSON TAVARES");
       if (deleteError) throw deleteError;
-      const { error: insertError } = await supabaseClient.from("importacao_creditos").insert(creditRows);
+
+      const { error: insertError } = await supabaseClient
+        .from("importacao_creditos")
+        .insert(creditRows);
       if (insertError) throw insertError;
 
-      showImportStatus(`Atualização concluída: ${records.length} Cavaleiros atualizados. VB, VA, VL e Créditos foram atualizados. Objetivos e TV instalada não foram alterados.`);
+      showImportStatus(
+        `Atualização concluída: ${records.length} Cavaleiros atualizados. ` +
+        `VB, VA/VL e Créditos foram sincronizados. Objetivos e TV instalada não foram alterados.`
+      );
+
       await carregarDados();
+
     } catch (error) {
       console.error(error);
       showImportStatus(error.message || "Não foi possível atualizar o ficheiro.", true);

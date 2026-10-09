@@ -799,7 +799,7 @@
       if (!matrix.length) throw new Error("A folha Mapa Resumo_INTELCIA_TV está vazia.");
 
       // Estrutura confirmada do Mapa Resumo_INTELCIA_TV:
-      // E=VENDEDOR, F=ATIVO, K=VB, L=VA, M=VL e AB=Total de Créditos.
+      // D=VENDEDOR, E=ATIVO, J=VB, K=VA, L=VL e AB=Total de Créditos.
       // Os índices abaixo são zero-based.
       const VENDEDOR = 4;
       const ATIVO = 5;
@@ -836,29 +836,44 @@
         return Number.isFinite(n) ? n : 0;
       };
 
-      // O pivot tem linhas de supervisor e linhas de vendedor intercaladas com linhas vazias.
-      // Procuramos apenas os quatro nomes aprovados na coluna VENDEDOR (E), sem depender
-      // do bloco do supervisor nem de células mescladas. Os dados são lidos só desta folha.
-      const recordsByPortal = new Map();
+      // Localizar o cabeçalho do bloco usando a coluna SUPER (D),
+      // e não a primeira ocorrência do nome em qualquer coluna.
+      let nelsonRow = -1;
       for (let i = 0; i < matrix.length; i++) {
+        if (cleanName(matrix[i][SUPER]) === "NELSON TAVARES") {
+          nelsonRow = i;
+          break;
+        }
+      }
+      if (nelsonRow < 0) {
+        throw new Error("Não encontrei NELSON TAVARES na coluna SUPER (D) da folha Mapa Resumo_INTELCIA_TV.");
+      }
+
+      const records = [];
+      const mappedPortals = new Set();
+      for (let i = nelsonRow + 1; i < matrix.length; i++) {
+        const supervisorCell = cleanName(matrix[i][SUPER]);
+        // O bloco termina quando surge outro supervisor na coluna SUPER.
+        if (supervisorCell && supervisorCell !== "NELSON TAVARES") break;
+
         const realName = String(matrix[i][VENDEDOR] ?? "").trim();
         const portal = mapping[cleanName(realName)];
-        if (!portal) continue;
+        if (!portal || mappedPortals.has(portal)) continue;
 
         const ativo = String(matrix[i][ATIVO] ?? "").trim().toUpperCase();
         if (ativo !== "S" && ativo !== "N") continue;
 
-        recordsByPortal.set(portal, {
+        mappedPortals.add(portal);
+        records.push({
           realName,
           portal,
           ativo,
           vb: parseNum(matrix[i][VB]),
-          va: parseNum(matrix[i][VA]),
+          va: Math.abs(parseNum(matrix[i][VA])),
           vl: parseNum(matrix[i][VL]),
           creditos: parseNum(matrix[i][CREDITOS])
         });
       }
-      const records = Array.from(recordsByPortal.values());
 
       if (!records.length) {
         throw new Error("Não encontrei os quatro Cavaleiros mapeados no bloco de NELSON TAVARES.");

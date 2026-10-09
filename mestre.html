@@ -836,47 +836,41 @@
         return Number.isFinite(n) ? n : 0;
       };
 
-      // Localizar o cabeçalho do bloco usando a coluna SUPER (D),
-      // e não a primeira ocorrência do nome em qualquer coluna.
-      let nelsonRow = -1;
+      // O XLSB pode expor um range que começa numa coluna diferente de A.
+      // Por isso, procurar os vendedores em todas as células e ler os campos
+      // por deslocamento relativo à célula do nome, sem depender do índice absoluto.
+      const records = [];
+      const mappedPortals = new Set();
+      const expectedNames = new Set(Object.keys(mapping));
       for (let i = 0; i < matrix.length; i++) {
-        if (cleanName(matrix[i][SUPER]) === "NELSON TAVARES") {
-          nelsonRow = i;
+        const row = matrix[i] || [];
+        for (let j = 0; j < row.length; j++) {
+          const realName = String(row[j] ?? "").trim();
+          const normalizedName = cleanName(realName);
+          const portal = mapping[normalizedName];
+          if (!portal || mappedPortals.has(portal)) continue;
+
+          // Na folha original: VEN​DEDOR (E), ATIVO (F), VB (K), VA (L),
+          // VL (M), Créditos (AB). Usar offsets evita problemas de range XLSB.
+          const ativo = String(row[j + 1] ?? "").trim().toUpperCase();
+          if (ativo !== "S" && ativo !== "N") continue;
+
+          mappedPortals.add(portal);
+          records.push({
+            realName,
+            portal,
+            ativo,
+            vb: parseNum(row[j + 6]),
+            va: Math.abs(parseNum(row[j + 7])),
+            vl: parseNum(row[j + 8]),
+            creditos: parseNum(row[j + 23])
+          });
           break;
         }
       }
-      if (nelsonRow < 0) {
-        throw new Error("Não encontrei NELSON TAVARES na coluna SUPER (D) da folha Mapa Resumo_INTELCIA_TV.");
-      }
-
-      const records = [];
-      const mappedPortals = new Set();
-      for (let i = nelsonRow + 1; i < matrix.length; i++) {
-        const supervisorCell = cleanName(matrix[i][SUPER]);
-        // O bloco termina quando surge outro supervisor na coluna SUPER.
-        if (supervisorCell && supervisorCell !== "NELSON TAVARES") break;
-
-        const realName = String(matrix[i][VENDEDOR] ?? "").trim();
-        const portal = mapping[cleanName(realName)];
-        if (!portal || mappedPortals.has(portal)) continue;
-
-        const ativo = String(matrix[i][ATIVO] ?? "").trim().toUpperCase();
-        if (ativo !== "S" && ativo !== "N") continue;
-
-        mappedPortals.add(portal);
-        records.push({
-          realName,
-          portal,
-          ativo,
-          vb: parseNum(matrix[i][VB]),
-          va: Math.abs(parseNum(matrix[i][VA])),
-          vl: parseNum(matrix[i][VL]),
-          creditos: parseNum(matrix[i][CREDITOS])
-        });
-      }
 
       if (!records.length) {
-        throw new Error("Não encontrei os quatro Cavaleiros mapeados no bloco de NELSON TAVARES.");
+        throw new Error("Não encontrei os quatro vendedores esperados na folha Mapa Resumo_INTELCIA_TV. Verifica o nome da folha e os nomes dos vendedores.");
       }
 
       const preview = records.map(r =>

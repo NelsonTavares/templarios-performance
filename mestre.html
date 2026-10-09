@@ -810,10 +810,16 @@
       const SUPER = 3;
 
       const mapping = {
-        "AGEU SILVESTRE AMERICANO SALVADOR": "Knight Salvador",
-        "DAVID AFONSO DOS SANTOS PEREIRA": "Sir. DAVID",
         "LILIANA JESUS SANTOS DE MATOS": "LORD LILI",
-        "CATARINA SOFIA SIMOES DA SILVA": "FEARLESS KATE"
+        "DAVID AFONSO DOS SANTOS PEREIRA": "SIR. DAVID",
+        "CATARINA SOFIA SIMOES DA SILVA": "FEARLESS KATE",
+        "AGEU SILVESTRE AMERICANO SALVADOR": "KNIGHT SALVADOR",
+        "FRANCISCA ALEXANDRA DIAS CRUZ VIEIRA DA SILVA": "FranTheForsaken",
+        "BEATRIZ GASPAR LEAL OLIVEIRA ALMEIDA": "WARRIOR BEA",
+        "ADRIANA MARIA BOYCHUK CUCIUC": "ADRIANA",
+        "RAQUEL RODRIGUES MEDEIROS": "RACHEL THE DUCHESS",
+        "ROSANGELA CORDEIRO DE SOUZA ASSEF NETO": "QUEEN ROSE",
+        "KAREN CLARE SANTOS GOTINE": "FURY KAREN"
       };
 
       const cleanName = value => String(value ?? "")
@@ -861,7 +867,7 @@
             portal,
             ativo,
             vb: parseNum(row[j + 6]),
-            va: Math.abs(parseNum(row[j + 7])),
+            va: parseNum(row[j + 7]),
             vl: parseNum(row[j + 8]),
             creditos: parseNum(row[j + 23])
           });
@@ -873,21 +879,37 @@
         throw new Error("Não encontrei os quatro vendedores esperados na folha Mapa Resumo_INTELCIA_TV. Verifica o nome da folha e os nomes dos vendedores.");
       }
 
-      const preview = records.map(r =>
-        `${r.portal}: VB ${r.vb}, VA ${r.va}, VL ${r.vl}, Créditos ${r.creditos}`
-      ).join("\n");
+      const activeRecords = records.filter(r => r.ativo === "S");
+      const inactiveRecords = records.filter(r => r.ativo === "N");
+      const sum = (arr, key) => arr.reduce((total, r) => total + (Number(r[key]) || 0), 0);
+      const inactiveTotals = {
+        vb: sum(inactiveRecords, "vb"),
+        // VA original é assinado para calcular VL; TV anulada é sempre positiva.
+        vaOriginal: sum(inactiveRecords, "va"),
+        vaAnulada: inactiveRecords.reduce((total, r) => total + Math.abs(Number(r.va) || 0), 0),
+        creditos: sum(inactiveRecords, "creditos")
+      };
+
+      const preview = [
+        ...activeRecords.map(r =>
+          `${r.portal} (S): VB ${r.vb}, VA ${r.va}, VL ${r.vb + r.va}, Créditos ${r.creditos}`
+        ),
+        ...(inactiveRecords.length ? [
+          `PORTAIS INATIVOS — EQUIPA (${inactiveRecords.length} vendedores N): VB ${inactiveTotals.vb}, VA -${inactiveTotals.vaAnulada}, VL ${inactiveTotals.vb + inactiveTotals.vaOriginal}, Créditos ${inactiveTotals.creditos}`
+        ] : [])
+      ].join("\\n");
 
       if (!window.confirm(
-        `Foram encontrados ${records.length} Cavaleiros no Mapa Resumo_INTELCIA_TV.\n\n` +
-        `Serão atualizados apenas VB, VA, VL e Créditos.\n` +
-        `Objetivo mensal e TV instalada NÃO serão alterados.\n\n` +
+        `Foram encontrados ${records.length} vendedores no Mapa Resumo_INTELCIA_TV.\\n\\n` +
+        `Os vendedores S serão atualizados nos respetivos portais. Todos os vendedores N serão somados em "PORTAIS INATIVOS — EQUIPA".\\n` +
+        `Objetivos mensais e TVs instaladas dos portais existentes NÃO serão alterados.\\n\\n` +
         preview +
-        `\n\nContinuar?`
+        `\\n\\nContinuar?`
       )) return;
 
       button.textContent = "A atualizar performance...";
 
-      for (const record of records) {
+      for (const record of activeRecords) {
         const { data: seller, error: sellerError } = await supabaseClient
           .from("sellers")
           .select("id,nome,ativo")
@@ -895,10 +917,8 @@
           .maybeSingle();
 
         if (sellerError) throw sellerError;
-        if (!seller) throw new Error(`O portal "${record.portal}" não existe. Nada foi criado automaticamente.`);
+        if (!seller) throw new Error(`O portal ativo "${record.portal}" não existe. Nada foi criado automaticamente.`);
 
-        // Se o Excel indicar N, não reativamos o portal.
-        // O objetivo e a TV instalada permanecem intocados.
         const { data: perf, error: perfError } = await supabaseClient
           .from("performance")
           .select("id")
@@ -909,25 +929,76 @@
         if (perfError) throw perfError;
         if (!perf) throw new Error(`Não existe performance para "${record.portal}" no período ativo.`);
 
-        // O modelo atual guarda TV Anulada como valor positivo e calcula VL = VB - VA.
-        // Como o Mapa Resumo fornece VA assinado, usamos o módulo de VA para preservar
-        // exatamente a VL apresentada no Excel.
         const { error: updateError } = await supabaseClient
           .from("performance")
           .update({
-            // O Mapa Resumo usa VA com sinal (ex.: -3). A tabela performance
-            // guarda TV anulada como valor absoluto e a TV líquida é derivada.
             tv_bruta: Math.max(0, record.vb),
-            tv_anulada: Math.max(0, Math.abs(record.va)),
+            tv_anulada: Math.abs(record.va),
             creditos: Number.isFinite(record.creditos) ? record.creditos : 0
           })
           .eq("id", perf.id)
           .eq("period_id", periodoAtual.id);
 
         if (updateError) throw updateError;
+      }
 
-        // Se o portal estiver inativo no sistema, não o reativamos.
-        // O estado ATIVO do Excel fica registado na importação para referência.
+      if (inactiveRecords.length) {
+        const inactivePortalName = "PORTAIS INATIVOS — EQUIPA";
+        const { data: inactiveSeller, error: inactiveSellerError } = await supabaseClient
+          .from("sellers")
+          .select("id,nome,ativo")
+          .ilike("nome", inactivePortalName)
+          .maybeSingle();
+
+        if (inactiveSellerError) throw inactiveSellerError;
+
+        let inactiveSellerId = inactiveSeller?.id;
+        if (!inactiveSellerId) {
+          const { data: createdSeller, error: createSellerError } = await supabaseClient
+            .from("sellers")
+            .insert({ nome: inactivePortalName, ativo: false })
+            .select("id")
+            .single();
+          if (createSellerError) throw createSellerError;
+          inactiveSellerId = createdSeller.id;
+        } else if (inactiveSeller.ativo !== false) {
+          throw new Error(`O portal "${inactivePortalName}" já existe mas não está inativo. Por segurança, não foi alterado.`);
+        }
+
+        const { data: inactivePerf, error: inactivePerfError } = await supabaseClient
+          .from("performance")
+          .select("id")
+          .eq("seller_id", inactiveSellerId)
+          .eq("period_id", periodoAtual.id)
+          .maybeSingle();
+
+        if (inactivePerfError) throw inactivePerfError;
+
+        const inactiveValues = {
+          tv_bruta: Math.max(0, inactiveTotals.vb),
+          tv_anulada: inactiveTotals.vaAnulada,
+          creditos: inactiveTotals.creditos
+        };
+
+        if (inactivePerf) {
+          const { error } = await supabaseClient
+            .from("performance")
+            .update(inactiveValues)
+            .eq("id", inactivePerf.id)
+            .eq("period_id", periodoAtual.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabaseClient
+            .from("performance")
+            .insert({
+              seller_id: inactiveSellerId,
+              period_id: periodoAtual.id,
+              objetivo: 0,
+              tv_instalada: 0,
+              ...inactiveValues
+            });
+          if (error) throw error;
+        }
       }
 
       const creditRows = records.map(r => ({
@@ -950,8 +1021,8 @@
       if (insertError) throw insertError;
 
       showImportStatus(
-        `Atualização concluída: ${records.length} Cavaleiros atualizados. ` +
-        `VB, VA/VL e Créditos foram sincronizados. Objetivos e TV instalada não foram alterados.`
+        `Atualização concluída: ${activeRecords.length} vendedores S processados e ${inactiveRecords.length} vendedores N agregados em PORTAIS INATIVOS — EQUIPA. ` +
+        `TV Líquida = VB + VA original (VA negativo). Objetivos e TVs instaladas dos portais existentes não foram alterados.`
       );
 
       await carregarDados();

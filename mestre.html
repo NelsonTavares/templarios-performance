@@ -836,20 +836,23 @@
         return Number.isFinite(n) ? n : 0;
       };
 
-      // Encontrar o bloco do supervisor NELSON TAVARES na estrutura hierárquica do pivot.
+      // Encontrar o supervisor em qualquer coluna, porque a exportação XLSB pode deslocar células vazias do pivot.
       let nelsonRow = -1;
       for (let i = 0; i < matrix.length; i++) {
-        if (cleanName(matrix[i][SUPER]) === "NELSON TAVARES") {
+        const rowHasNelson = matrix[i].some(cell => cleanName(cell) === "NELSON TAVARES");
+        if (rowHasNelson) {
           nelsonRow = i;
           break;
         }
       }
-      if (nelsonRow < 0) throw new Error("Não encontrei o bloco do supervisor NELSON TAVARES.");
+      if (nelsonRow < 0) throw new Error("Não encontrei o supervisor NELSON TAVARES na folha Mapa Resumo_INTELCIA_TV.");
 
       const records = [];
       for (let i = nelsonRow + 1; i < matrix.length; i++) {
-        // O próximo supervisor aparece novamente na coluna SUPER.
-        if (String(matrix[i][SUPER] ?? "").trim()) break;
+        // Terminar quando aparecer outro nome de supervisor em qualquer célula da linha.
+        const supervisorNames = ["NELSON TAVARES", "PEDRO MONTEIRO"];
+        const foundSupervisor = matrix[i].some(cell => supervisorNames.includes(cleanName(cell)));
+        if (foundSupervisor) break;
 
         const realName = String(matrix[i][VENDEDOR] ?? "").trim();
         const portal = mapping[cleanName(realName)];
